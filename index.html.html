@@ -1,0 +1,1956 @@
+<!DOCTYPE html>
+<html lang="vi" class="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng Điều Khiển: Đánh Giá Ứng Dụng AI Trong Kiểm Toán</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ["'Inter'", "sans-serif"],
+                        outfit: ["'Inter'", "sans-serif"],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            600: '#0284c7',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .font-outfit {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .dark .glass-card {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+
+        .animated-glow {
+            position: relative;
+        }
+
+        .animated-glow::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: inherit;
+            box-shadow: 0 0 15px rgba(20, 184, 166, 0.4);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
+        }
+
+        .animated-glow:hover::before {
+            opacity: 1;
+        }
+
+        .flow-step {
+            transition: all 0.3s ease;
+        }
+
+        .flow-step:hover {
+            transform: translateY(-4px);
+        }
+    </style>
+</head>
+
+<body
+    class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 antialiased min-h-screen selection:bg-teal-500 selection:text-white">
+
+    <!-- SIMULATOR DRAWER / CONTROL PANEL (LEFT SIDEBAR) -->
+    <aside id="simulatorDrawer"
+        class="fixed top-0 left-0 h-full w-80 md:w-96 z-40 bg-white/95 dark:bg-slate-900/95 shadow-2xl border-r border-slate-200 dark:border-slate-800 transition-transform duration-300 transform -translate-x-full overflow-y-auto custom-scrollbar flex flex-col">
+        <div
+            class="p-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-blue-900 text-white">
+            <div class="flex items-center gap-2">
+                <span class="text-2xl">⚙️</span>
+                <div>
+                    <h2 class="font-outfit font-bold text-lg leading-tight">BỘ MÔ PHỎNG DỮ LIỆU</h2>
+                    <p class="text-xs text-blue-200">Thay đổi thông số để cập nhật biểu đồ</p>
+                </div>
+            </div>
+            <button onclick="toggleSimulator()" class="p-1.5 hover:bg-white/10 rounded-full transition text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+        </div>
+
+        <div class="p-6 space-y-6 flex-1 text-slate-700 dark:text-slate-300">
+            <!-- GROUND TRUTH ADJUSTMENT -->
+            <div>
+                <h3 class="font-bold text-sm text-blue-800 dark:text-sky-400 uppercase tracking-wider mb-3">1. Dữ liệu
+                    Thực tế (Ý kiến Thẩm định)</h3>
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between text-xs font-semibold mb-1">
+                            <span>Vụ Pháp chế (Mặc định: 40)</span>
+                            <span class="text-blue-900 dark:text-sky-300 font-bold" id="val_gt_phapche">40</span>
+                        </div>
+                        <input type="range" min="10" max="100" value="40" id="gt_phapche" oninput="updateState()"
+                            class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-900">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs font-semibold mb-1">
+                            <span>Vụ Chế độ & Kiểm soát (Mặc định: 30)</span>
+                            <span class="text-teal-600 dark:text-teal-400 font-bold" id="val_gt_chedo">30</span>
+                        </div>
+                        <input type="range" min="10" max="100" value="30" id="gt_chedo" oninput="updateState()"
+                            class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-teal-600">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs font-semibold mb-1">
+                            <span>Vụ Tổng hợp (Mặc định: 23)</span>
+                            <span class="text-amber-600 dark:text-amber-400 font-bold" id="val_gt_tonghop">23</span>
+                        </div>
+                        <input type="range" min="10" max="100" value="23" id="gt_tonghop" oninput="updateState()"
+                            class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500">
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-slate-200 dark:border-slate-800">
+
+            <!-- LLM OUTPUT QUANTITY -->
+            <div>
+                <h3 class="font-bold text-sm text-blue-800 dark:text-sky-400 uppercase tracking-wider mb-3">2. Số lượng
+                    ý kiến do LLM trích xuất</h3>
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between text-xs font-semibold mb-1">
+                            <span>Claude 3.5 Sonnet (Mặc định: 94)</span>
+                            <span class="text-sky-600 font-bold" id="val_count_claude">94</span>
+                        </div>
+                        <input type="range" min="10" max="200" value="94" id="count_claude" oninput="updateState()"
+                            class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs font-semibold mb-1">
+                            <span>ChatGPT (Mặc định: 50)</span>
+                            <span class="text-amber-500 font-bold" id="val_count_chatgpt">50</span>
+                        </div>
+                        <input type="range" min="10" max="200" value="50" id="count_chatgpt" oninput="updateState()"
+                            class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs font-semibold mb-1">
+                            <span>Microsoft Copilot (Mặc định: 50)</span>
+                            <span class="text-indigo-500 font-bold" id="val_count_copilot">50</span>
+                        </div>
+                        <input type="range" min="10" max="200" value="50" id="count_copilot" oninput="updateState()"
+                            class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs font-semibold mb-1">
+                            <span>Google Gemini (Mặc định: 162)</span>
+                            <span class="text-rose-600 font-bold" id="val_count_gemini">162</span>
+                        </div>
+                        <input type="range" min="10" max="250" value="162" id="count_gemini" oninput="updateState()"
+                            class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-rose-500">
+                    </div>
+
+                    <!-- CUSTOM MODEL SIMULATION -->
+                    <div
+                        class="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 mt-2">
+                        <div class="flex items-center justify-between mb-2">
+                            <span
+                                class="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                <span class="w-2.5 h-2.5 bg-purple-600 rounded-full inline-block"></span>
+                                Kích hoạt AI Tùy Chọn
+                            </span>
+                            <input type="checkbox" id="custom_active" onchange="toggleCustomModel()"
+                                class="w-4 h-4 rounded text-purple-600 accent-purple-600">
+                        </div>
+                        <div id="custom_model_inputs"
+                            class="space-y-2 opacity-40 pointer-events-none transition-opacity">
+                            <div class="flex gap-2 mb-2">
+                                <input type="text" id="custom_name" value="AI Tùy Chọn" onchange="updateState()"
+                                    placeholder="Tên mô hình"
+                                    class="w-full text-xs px-2.5 py-1.5 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-slate-100">
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-xs font-semibold mb-1">
+                                    <span>Số ý kiến trích xuất</span>
+                                    <span class="text-purple-600 font-bold" id="val_count_custom">80</span>
+                                </div>
+                                <input type="range" min="10" max="250" value="80" id="count_custom"
+                                    oninput="updateState()"
+                                    class="w-full h-1 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-600">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-slate-200 dark:border-slate-800">
+
+            <!-- RADAR CRITERIA WEIGHTS -->
+            <div>
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-sm text-blue-800 dark:text-sky-400 uppercase tracking-wider">3. Trọng số
+                        Tiêu chí (%)</h3>
+                    <span class="text-xs text-slate-400 dark:text-slate-500 font-bold" id="weight_sum">Tổng: 100%</span>
+                </div>
+                <div
+                    class="space-y-3 bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="truncate pr-2">Độ chính xác định lượng</span>
+                            <span class="font-bold text-slate-700 dark:text-slate-300" id="val_w1">25%</span>
+                        </div>
+                        <input type="range" min="0" max="50" value="25" id="w1" oninput="adjustWeights(1)"
+                            class="w-full h-1 bg-slate-200 dark:bg-slate-700 rounded-lg accent-slate-500">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="truncate pr-2">Pháp lý & nghiệp vụ</span>
+                            <span class="font-bold text-slate-700 dark:text-slate-300" id="val_w2">25%</span>
+                        </div>
+                        <input type="range" min="0" max="50" value="25" id="w2" oninput="adjustWeights(2)"
+                            class="w-full h-1 bg-slate-200 dark:bg-slate-700 rounded-lg accent-slate-500">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="truncate pr-2">Ngữ cảnh điều hành</span>
+                            <span class="font-bold text-slate-700 dark:text-slate-300" id="val_w3">20%</span>
+                        </div>
+                        <input type="range" min="0" max="50" value="20" id="w3" oninput="adjustWeights(3)"
+                            class="w-full h-1 bg-slate-200 dark:bg-slate-700 rounded-lg accent-slate-500">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="truncate pr-2">Kiểm soát sai lệch</span>
+                            <span class="font-bold text-slate-700 dark:text-slate-300" id="val_w4">20%</span>
+                        </div>
+                        <input type="range" min="0" max="50" value="20" id="w4" oninput="adjustWeights(4)"
+                            class="w-full h-1 bg-slate-200 dark:bg-slate-700 rounded-lg accent-slate-500">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="truncate pr-2">Văn phong hành chính</span>
+                            <span class="font-bold text-slate-700 dark:text-slate-300" id="val_w5">10%</span>
+                        </div>
+                        <input type="range" min="0" max="50" value="10" id="w5" oninput="adjustWeights(5)"
+                            class="w-full h-1 bg-slate-200 dark:bg-slate-700 rounded-lg accent-slate-500">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex gap-2">
+            <button onclick="resetSimulator()"
+                class="w-1/2 py-2 text-xs font-semibold bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 hover:bg-slate-300 rounded-lg transition text-slate-700 dark:text-slate-300">Khôi
+                phục</button>
+            <button onclick="toggleSimulator()"
+                class="w-1/2 py-2 text-xs font-bold bg-blue-900 hover:bg-blue-800 text-white rounded-lg transition">Đóng</button>
+        </div>
+    </aside>
+
+    <!-- SIMULATOR BACKDROP -->
+    <div id="simulatorBackdrop" onclick="toggleSimulator()"
+        class="fixed inset-0 bg-black/40 z-30 hidden backdrop-blur-sm transition-opacity"></div>
+
+    <!-- HEADER SECTION -->
+    <header
+        class="bg-gradient-to-r from-blue-950 via-blue-900 to-teal-900 text-white py-12 md:py-16 px-4 relative overflow-hidden shadow-lg shadow-blue-900/10">
+        <!-- Glowing circle decorative assets -->
+        <div
+            class="absolute w-[500px] h-[500px] rounded-full bg-teal-500/10 blur-[120px] -top-80 -right-60 pointer-events-none">
+        </div>
+        <div
+            class="absolute w-[400px] h-[400px] rounded-full bg-blue-600/10 blur-[100px] -bottom-60 -left-60 pointer-events-none">
+        </div>
+
+        <div class="max-w-7xl mx-auto relative z-10">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+
+                <!-- Logo and Titles -->
+                <div class="text-center md:text-left flex-1">
+                    <div
+                        class="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full border border-white/20 text-xs font-bold uppercase tracking-wider mb-4 text-teal-300">
+                        <span>⚖️</span> TỔ NGHIÊN CỨU VÀ ỨNG DỤNG GIẢI PHÁP AI THƯƠNG MẠI TRONG HOẠT ĐỘNG CỦA KIỂM TOÁN
+                        NHÀ NƯỚC
+                    </div>
+                    <h1 class="text-3xl md:text-5xl font-extrabold font-outfit tracking-tight mb-4 uppercase">
+                        BẢNG ĐÁNH GIÁ NĂNG LỰC TRÍ TUỆ NHÂN TẠO
+                    </h1>
+                    <p class="text-base md:text-xl font-light text-blue-100/90 max-w-4xl leading-relaxed">
+                        Đo lường năng lực trích xuất và đọc hiểu ý kiến thẩm định từ hồ sơ Báo cáo kiểm toán ngân sách
+                        địa phương Ninh Bình 2022.
+                    </p>
+                </div>
+
+                <!-- Interactive Buttons -->
+                <div class="flex flex-wrap md:flex-col lg:flex-row gap-3 justify-center">
+                    <button onclick="toggleSimulator()"
+                        class="flex items-center gap-2 bg-teal-500 hover:bg-teal-400 text-white font-bold py-2.5 px-5 rounded-xl shadow-lg shadow-teal-500/30 transition-all transform active:scale-95 text-sm uppercase">
+                        <span class="text-lg">⚙️</span> Mở Bộ Mô Phỏng
+                    </button>
+                    <button onclick="toggleDarkMode()"
+                        class="flex items-center justify-center w-11 h-11 bg-white/10 border border-white/20 hover:bg-white/20 text-white rounded-xl transition-all shadow-lg"
+                        title="Đổi chế độ Sáng/Tối">
+                        <!-- Sun Icon -->
+                        <svg id="sunIcon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 3v1m0 16v1m9-9h-1M4 9h-1m14.071-7.071l-.707.707M6.343 17.657l-.707.707m2.828-9.9a5 5 0 117.072 0l-.707.707M16.243 16.243l-.707.707">
+                            </path>
+                        </svg>
+                        <!-- Moon Icon -->
+                        <svg id="moonIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </header>
+
+    <!-- REPORT METADATA & INTRO SECTION (PHẦN I) -->
+    <div class="max-w-7xl mx-auto px-4 mt-8">
+        <div
+            class="glass-card rounded-3xl p-6 md:p-8 shadow-xl border border-slate-200/80 dark:border-slate-800/80 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md">
+            <div
+                class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 mb-6 border-b border-slate-200/60 dark:border-slate-800/60">
+                <div>
+                    <span
+                        class="text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-widest block mb-1">Báo
+                        cáo tổng hợp</span>
+                </div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 md:text-right space-y-1">
+                    <div><strong>Hồ sơ đối chứng:</strong> Báo cáo tiếp thu, giải trình ý kiến thẩm định dự thảo BCKT
+                        Ninh Bình 2022</div>
+                    <div><strong>Ngày ban hành:</strong> 21 tháng 05 năm 2026</div>
+                </div>
+            </div>
+
+            <div
+                class="grid grid-cols-1 lg:grid-cols-2 gap-8 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                <div>
+                    <h3 class="font-bold text-blue-900 dark:text-sky-400 text-xs uppercase tracking-wider mb-2">1.1. Bối
+                        cảnh và ý nghĩa thực tiễn</h3>
+                    <p class="mb-3 text-justify">
+                        Quy trình thẩm định, giải trình và tiếp thu ý kiến thẩm định giữa các Vụ tham mưu (Vụ Tổng hợp,
+                        Vụ Pháp chế, Vụ Chế độ & Kiểm soát chất lượng kiểm toán) và các Đoàn kiểm toán là chốt chặn
+                        nghiệp vụ then chốt nhằm bảo đảm tính pháp lý, tính chính xác của số liệu tài chính trước khi
+                        ban hành Báo cáo kiểm toán chính thức.
+                    </p>
+                    <p class="text-justify">
+                        Do dung lượng hồ sơ của mỗi kỳ kiểm toán thường rất lớn, đan xen nhiều mối quan hệ pháp lý phức
+                        tạp và các văn bản quy phạm pháp luật chồng chéo, công việc rà soát thủ công mức độ tiếp thu
+                        tiêu tốn nhiều thời gian và nguồn lực của kiểm toán viên cũng như cấp quản lý. Đợt thử nghiệm
+                        này đánh giá năng lực tự động hóa khâu rà soát, thống kê và phân tích ý kiến thẩm định của 4 AI
+                        hàng đầu hiện nay.
+                    </p>
+                </div>
+                <div>
+                    <h3 class="font-bold text-blue-900 dark:text-sky-400 text-xs uppercase tracking-wider mb-2">1.2. Mục
+                        tiêu của báo cáo</h3>
+                    <ul class="space-y-2">
+                        <li class="flex items-start gap-2">
+                            <span class="text-teal-500 mt-0.5">✔</span>
+                            <span>Phân tích, tổng hợp và đối chiếu kết quả đầu ra của 4 ứng dụng AI với Báo cáo giải
+                                trình thực tế của Đoàn kiểm toán đối với hồ sơ kiểm toán ngân sách địa phương năm 2022
+                                của tỉnh Ninh Bình.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-teal-500 mt-0.5">✔</span>
+                            <span>Xây dựng hệ thống Khung tiêu chí chung mang tính định lượng và định tính nhằm đo lường
+                                mức độ phù hợp và độ tin cậy của các ứng dụng trí tuệ nhân tạo đối với đặc thù công tác
+                                kiểm toán nhà nước.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-teal-500 mt-0.5">✔</span>
+                            <span>Đánh giá khách quan, xếp hạng và đề xuất công cụ tối ưu và phù hợp nhất để đơn vị áp
+                                dụng vào quy trình công việc thực tế.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8 relative">
+
+        <!-- DYNAMIC DASHBOARD SUMMARY CARD ROW -->
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            <div class="glass-card rounded-2xl p-4 shadow-sm border-l-4 border-blue-900 dark:border-sky-500">
+                <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase">Ý kiến thực tế</div>
+                <div class="text-xl md:text-2xl font-bold font-outfit mt-1 text-blue-950 dark:text-sky-300"
+                    id="summary_gt_total">93</div>
+                <div class="text-[10px] text-slate-400 mt-1">56 trang hồ sơ</div>
+            </div>
+            <div class="glass-card rounded-2xl p-4 shadow-sm border-l-4 border-sky-500">
+                <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase">Sai lệch Claude 3.5
+                </div>
+                <div class="text-xl md:text-2xl font-bold font-outfit mt-1 text-sky-600" id="summary_dev_claude">+1.1%
+                </div>
+                <div class="text-[10px] text-teal-600 dark:text-teal-400 font-semibold mt-1">🥇 Sát thực tế nhất</div>
+            </div>
+            <div class="glass-card rounded-2xl p-4 shadow-sm border-l-4 border-amber-500">
+                <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase">Sai lệch ChatGPT
+                </div>
+                <div class="text-xl md:text-2xl font-bold font-outfit mt-1 text-amber-500" id="summary_dev_chatgpt">
+                    -46.2%</div>
+                <div class="text-[10px] text-amber-600 dark:text-amber-400 font-semibold mt-1">⚠️ Bỏ sót ý kiến</div>
+            </div>
+            <div class="glass-card rounded-2xl p-4 shadow-sm border-l-4 border-indigo-500">
+                <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase">Sai lệch Copilot
+                </div>
+                <div class="text-xl md:text-2xl font-bold font-outfit mt-1 text-indigo-600" id="summary_dev_copilot">
+                    -46.2%</div>
+                <div class="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold mt-1">⚠️ Lỗi hiển thị số
+                </div>
+            </div>
+            <div class="glass-card rounded-2xl p-4 shadow-sm border-l-4 border-rose-500">
+                <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase">Sai lệch Gemini
+                </div>
+                <div class="text-xl md:text-2xl font-bold font-outfit mt-1 text-rose-500" id="summary_dev_gemini">+74.2%
+                </div>
+                <div class="text-[10px] text-rose-600 dark:text-rose-400 font-semibold mt-1">🛑 Đếm lặp ảo tưởng</div>
+            </div>
+        </div>
+
+        <!-- INTERACTIVE TABS NAVIGATION -->
+        <div
+            class="flex border-b border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 p-1.5 rounded-2xl shadow-sm overflow-x-auto custom-scrollbar gap-1 backdrop-blur-md">
+            <button onclick="switchTab('tab-ground-truth')" id="btn-tab-ground-truth"
+                class="tab-btn flex-1 min-w-[150px] py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-blue-900 dark:text-sky-400 bg-slate-100 dark:bg-slate-800 shadow-sm border border-slate-200/50 dark:border-slate-700/50">
+                <span>📊</span> 1. Dữ Liệu Thực Tế
+            </button>
+            <button onclick="switchTab('tab-quantitative')" id="btn-tab-quantitative"
+                class="tab-btn flex-1 min-w-[150px] py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400">
+                <span>⚖️</span> 2. Lệch Chuẩn Định Lượng
+            </button>
+            <button onclick="switchTab('tab-qualitative')" id="btn-tab-qualitative"
+                class="tab-btn flex-1 min-w-[150px] py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400">
+                <span>🕸️</span> 3. Độ Sâu Định Tính
+            </button>
+            <button onclick="switchTab('tab-workflow')" id="btn-tab-workflow"
+                class="tab-btn flex-1 min-w-[150px] py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400">
+                <span>🛠️</span> 4. Quy Trình Khuyến Nghị
+            </button>
+        </div>
+
+        <!-- TAB CONTENT 1: GROUND TRUTH -->
+        <section id="tab-ground-truth" class="tab-pane space-y-8 block">
+            <div
+                class="glass-card rounded-3xl p-6 md:p-8 border-t-4 border-teal-500 shadow-xl shadow-slate-200/50 dark:shadow-none">
+                <div class="max-w-4xl mx-auto text-center mb-8">
+                    <h2
+                        class="text-2xl md:text-3xl font-bold text-blue-950 dark:text-sky-400 mb-3 uppercase tracking-wide font-outfit">
+                        PHẦN II: XÁC LẬP THƯỚC ĐO KIỂM CHUẨN TỪ HỒ SƠ THỰC TẾ</h2>
+                    <p class="text-slate-600 dark:text-slate-400 leading-relaxed text-sm md:text-base">
+                        Để thẩm định kết quả, Tổ nghiên cứu đã rà soát thủ công, đối chiếu chi tiết từng dòng dữ liệu
+                        trong văn bản gốc "Báo cáo giải trình tiếp thu ý kiến.pdf" (quy mô 56 trang, tổng 93 ý kiến thẩm
+                        định thực tế). Nhấp vào các thẻ để xem chi tiết mẫu văn bản.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch mb-8">
+                    <!-- Text & Department interactive cards -->
+                    <div class="lg:col-span-6 space-y-4 flex flex-col justify-between">
+                        <div onclick="showDepartmentModal('phapce')"
+                            class="animated-glow flex items-start gap-4 bg-slate-50 dark:bg-slate-900/60 hover:bg-white dark:hover:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 cursor-pointer transition shadow-sm hover:shadow-md flex-1">
+                            <div class="text-3xl p-2.5 bg-blue-100 dark:bg-blue-950/60 rounded-xl">📝</div>
+                            <div class="flex-1">
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold text-blue-950 dark:text-sky-300 text-sm md:text-base">Vụ Pháp
+                                        chế</span>
+                                    <span
+                                        class="bg-blue-900 text-white text-xs font-bold px-2.5 py-0.5 rounded-full animate-pulse"
+                                        id="card_gt_phapche">40 ý kiến</span>
+                                </div>
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-normal">Gồm 40 ý
+                                    kiến chi tiết từ 1.1 đến 4.5. Thẩm định tính hợp pháp, văn bản quy phạm pháp luật,
+                                    thẩm quyền ban hành quyết định hành chính địa phương.</p>
+                                <span class="text-[10px] text-teal-600 font-semibold hover:underline block mt-1">Xem chi
+                                    tiết phân rã mục & mẫu ý kiến ➜</span>
+                            </div>
+                        </div>
+
+                        <div onclick="showDepartmentModal('chedo')"
+                            class="animated-glow flex items-start gap-4 bg-slate-50 dark:bg-slate-900/60 hover:bg-white dark:hover:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 cursor-pointer transition shadow-sm hover:shadow-md flex-1">
+                            <div class="text-3xl p-2.5 bg-teal-100 dark:bg-teal-950/60 rounded-xl">🛡️</div>
+                            <div class="flex-1">
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold text-teal-600 dark:text-teal-400 text-sm md:text-base">Vụ Chế
+                                        độ & Kiểm soát chất lượng</span>
+                                    <span class="bg-teal-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-full"
+                                        id="card_gt_chedo">30 ý kiến</span>
+                                </div>
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-normal">Gồm 30 ý
+                                    kiến (Mục 1-4 & các chuyên đề B.1, B.2, B.3). Kiểm soát chất lượng hồ sơ mẫu biểu,
+                                    bằng chứng kiểm toán thu thập và tính nhất quán báo cáo.</p>
+                                <span class="text-[10px] text-teal-600 font-semibold hover:underline block mt-1">Xem chi
+                                    tiết phân rã mục & mẫu ý kiến ➜</span>
+                            </div>
+                        </div>
+
+                        <div onclick="showDepartmentModal('tonghop')"
+                            class="animated-glow flex items-start gap-4 bg-slate-50 dark:bg-slate-900/60 hover:bg-white dark:hover:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 cursor-pointer transition shadow-sm hover:shadow-md flex-1">
+                            <div class="text-3xl p-2.5 bg-amber-100 dark:bg-amber-950/60 rounded-xl">📊</div>
+                            <div class="flex-1">
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold text-amber-600 text-sm md:text-base">Vụ Tổng hợp</span>
+                                    <span class="bg-amber-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full"
+                                        id="card_gt_tonghop">23 ý kiến</span>
+                                </div>
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-normal">Gồm 23 ý
+                                    kiến cốt lõi (không tính Mục 3 chỉ hiệu chỉnh cơ học từ ngữ). Rà soát logic khớp số
+                                    liệu ngân sách địa phương và kiến nghị tài chính.</p>
+                                <span class="text-[10px] text-teal-600 font-semibold hover:underline block mt-1">Xem chi
+                                    tiết phân rã mục & mẫu ý kiến ➜</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Doughnut chart representation -->
+                    <div class="lg:col-span-6 flex justify-center">
+                        <div
+                            class="w-full max-w-[400px] h-full min-h-[350px] relative bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-inner border border-slate-100 dark:border-slate-800/80 flex flex-col justify-between">
+                            <div
+                                class="text-center font-bold text-sm text-slate-600 dark:text-slate-400 uppercase mb-2">
+                                Tỉ trọng phân bổ ý kiến thực tế</div>
+                            <div class="relative flex-1 min-h-[220px]">
+                                <canvas id="groundTruthChart"></canvas>
+                            </div>
+                            <div
+                                class="text-[10px] text-slate-400 text-center mt-3 leading-normal border-t border-slate-100 dark:border-slate-800 pt-2">
+                                <strong>Lưu ý nghiệp vụ:</strong> Mục 3 của Vụ Tổng hợp là hiệu chỉnh biên tập kỹ thuật,
+                                không cấu thành ý kiến độc lập mới nên không cộng dồn (Tổng khớp = 93).
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2.2: Case Studies Grid -->
+                <div class="border-t border-slate-200/60 dark:border-slate-800/60 pt-8">
+                    <h3
+                        class="text-lg font-bold text-blue-950 dark:text-sky-300 mb-4 uppercase tracking-wide font-outfit text-center">
+                        2.2. Các nội dung nghiệp vụ trọng tâm (Các vụ việc điển hình)
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div
+                            class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm hover:shadow-md transition">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="text-xl">🏗️</span>
+                                <h4 class="font-bold text-slate-800 dark:text-slate-100 text-sm">Hợp đồng hỗn hợp Thiết
+                                    kế & Thi công (Hợp đồng EC)</h4>
+                            </div>
+                            <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                                Các vướng mắc pháp lý phát sinh do Luật Xây dựng và Luật Đấu thầu chưa đồng bộ về quy
+                                trình, điều kiện thanh quyết toán thực tế.
+                            </p>
+                            <div
+                                class="mt-4 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800 font-mono text-[10px] text-slate-500">
+                                <strong>Ví dụ điển hình:</strong> Dự án Khánh Phú phát hiện vượt giá gói thầu 1.374
+                                triệu đồng theo Nghị định 50/2021/NĐ-CP và Điều 14 Hợp đồng 05/2021/HĐ-EC.
+                            </div>
+                        </div>
+
+                        <div
+                            class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm hover:shadow-md transition">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="text-xl">💰</span>
+                                <h4 class="font-bold text-slate-800 dark:text-slate-100 text-sm">Quỹ Phát triển đất tỉnh
+                                    Ninh Bình</h4>
+                            </div>
+                            <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                                Việc ứng vốn từ Quỹ Phát triển đất trùng nhiệm vụ chi ngân sách nhà nước trị giá <strong
+                                    class="text-teal-600 dark:text-teal-400">30.000 triệu đồng</strong> (30 tỷ đồng).
+                            </p>
+                            <div
+                                class="mt-4 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800 font-mono text-[10px] text-slate-500">
+                                <strong>Đoàn kiểm toán xử lý:</strong> Sau khi có hồ sơ bổ sung chứng minh đơn vị đã
+                                hoàn trả đầy đủ trước 18/9/2023, Đoàn đã giảm kiến nghị từ "xử lý trách nhiệm tập thể,
+                                cá nhân" xuống "chấn chỉnh, rút kinh nghiệm".
+                            </div>
+                        </div>
+
+                        <div
+                            class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm hover:shadow-md transition">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="text-xl">🪨</span>
+                                <h4 class="font-bold text-slate-800 dark:text-slate-100 text-sm">Thuế và Quản lý tài sản
+                                    công</h4>
+                            </div>
+                            <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                                Đoàn kiểm toán bảo lưu quan điểm giữ nguyên số liệu nợ thuế tài nguyên và tiền cấp quyền
+                                khai thác khoáng sản dựa trên phần mềm quản lý thuế.
+                            </p>
+                            <div
+                                class="mt-4 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800 font-mono text-[10px] text-slate-500">
+                                <strong>Mẫu số liệu:</strong> Số liệu thuế tài nguyên và tiền cấp quyền khai thác khoáng
+                                sản ước tính là <strong class="text-teal-600 dark:text-teal-400">2.923 triệu
+                                    đồng</strong> tại huyện Nho Quan, được bảo lưu nhằm đảm bảo tính thận trọng.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB CONTENT 2: QUANTITATIVE -->
+        <section id="tab-quantitative" class="tab-pane space-y-8 hidden">
+            <div
+                class="glass-card rounded-3xl p-6 md:p-8 border-t-4 border-blue-600 shadow-xl shadow-slate-200/50 dark:shadow-none">
+                <div class="max-w-4xl mx-auto text-center mb-8">
+                    <h2
+                        class="text-2xl md:text-3xl font-bold text-blue-950 dark:text-sky-400 mb-3 uppercase tracking-wide font-outfit">
+                        PHẦN III: TỔNG HỢP VÀ SO SÁNH KẾT QUẢ CỦA CÁC ỨNG DỤNG AI</h2>
+                    <p class="text-slate-600 dark:text-slate-400 leading-relaxed text-sm md:text-base">
+                        Kết quả cho thấy sự phân hóa rõ rệt về năng lực định lượng. Claude đạt độ chính xác sát nhất
+                        (~94 ý kiến), ChatGPT và Copilot gặp lỗi "ảo tưởng cấu trúc" (bỏ sót >45% dữ liệu), Gemini đếm
+                        lặp quá mức (+74%).
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+                    <!-- Bar Chart -->
+                    <div class="lg:col-span-7 w-full">
+                        <div
+                            class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800/80 h-full min-h-[380px] flex flex-col justify-between">
+                            <div
+                                class="text-center font-bold text-sm text-slate-600 dark:text-slate-400 uppercase mb-2">
+                                So sánh số lượng ý kiến trích xuất của các AI</div>
+                            <div class="relative flex-1 min-h-[300px]">
+                                <canvas id="quantitativeChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Leaderboard & Explanation -->
+                    <div class="lg:col-span-5 space-y-6 flex flex-col justify-between">
+                        <div
+                            class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
+                            <h3
+                                class="text-base font-bold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+                                🏆 Bảng xếp hạng độ chính xác định lượng
+                            </h3>
+                            <div class="divide-y divide-slate-100 dark:divide-slate-800" id="accuracy_leaderboard">
+                                <!-- Dynamically populated by JS -->
+                            </div>
+                        </div>
+
+                        <div
+                            class="bg-blue-50 dark:bg-blue-950/40 p-4 rounded-xl border border-blue-100 dark:border-blue-900/50">
+                            <h4
+                                class="font-bold text-blue-950 dark:text-sky-300 text-xs uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                                💡 Phân tích nguyên nhân lệch số liệu của AI
+                            </h4>
+                            <ul
+                                class="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed space-y-2 list-disc pl-4">
+                                <li><strong>Claude 3.5 Sonnet:</strong> Duy trì tiêu chuẩn tiệm cận thực tế nhất. Nhận
+                                    diện cấu trúc mục lục đan xen, quét toàn diện mà không ảo tưởng tạo bảng giả lập.
+                                </li>
+                                <li><strong>ChatGPT & Copilot:</strong> Gặp "lỗi ảo tưởng cấu trúc" do giới hạn dung
+                                    lượng đọc hiểu, tự ý cắt giảm và nén hơn 45% lượng ý kiến để tạo ra tỷ lệ tiếp thu
+                                    tròn trịa giả tạo 100%.</li>
+                                <li><strong>Google Gemini:</strong> Đếm lặp dữ liệu nghiêm trọng (+74%) do tự phân rã
+                                    các dòng thảo luận chi tiết, chú thích chân trang hoặc các câu giải trình thành các
+                                    ý kiến thẩm định độc lập.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB CONTENT 3: QUALITATIVE RADAR -->
+        <section id="tab-qualitative" class="tab-pane space-y-8 hidden">
+            <div
+                class="glass-card rounded-3xl p-6 md:p-8 border-t-4 border-indigo-500 shadow-xl shadow-slate-200/50 dark:shadow-none">
+                <div class="max-w-4xl mx-auto text-center mb-8">
+                    <h2
+                        class="text-2xl md:text-3xl font-bold text-blue-950 dark:text-sky-400 mb-3 uppercase tracking-wide font-outfit">
+                        PHẦN IV & V: KHUNG TIÊU CHÍ VÀ BẢNG ĐIỂM CHI TIẾT CỦA CÁC AI</h2>
+                    <p class="text-slate-600 dark:text-slate-400 leading-relaxed text-sm md:text-base">
+                        Hệ thống khung tiêu chí chuẩn hóa (Tổng điểm 100) và bảng điểm đối chiếu năng lực thực tế. Thay
+                        đổi các trọng số tiêu chí ở Sidebar để cập nhật điểm trọng số của từng AI.
+                    </p>
+                </div>
+
+                <!-- Table 1: Criteria details -->
+                <div
+                    class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 mb-8 overflow-x-auto">
+                    <h3 class="text-sm font-bold text-blue-900 dark:text-sky-400 uppercase tracking-wider mb-3">Bảng 1:
+                        Hệ thống khung tiêu chí và chỉ số chất lượng cốt lõi</h3>
+                    <table class="w-full text-left border-collapse text-[11px] md:text-xs">
+                        <thead>
+                            <tr
+                                class="border-b border-slate-200 dark:border-slate-800 text-slate-500 uppercase bg-slate-50 dark:bg-slate-950">
+                                <th class="py-2 px-3 font-bold w-12 text-center">STT</th>
+                                <th class="py-2 px-3 font-bold w-48">Tiêu chí đánh giá</th>
+                                <th class="py-2 px-3 font-bold w-20 text-center">Trọng số gốc</th>
+                                <th class="py-2 px-3 font-bold">Chỉ số đo lường chất lượng cốt lõi</th>
+                            </tr>
+                        </thead>
+                        <tbody
+                            class="divide-y divide-slate-100 dark:divide-slate-800 text-slate-600 dark:text-slate-400">
+                            <tr>
+                                <td class="py-2.5 px-3 text-center">1</td>
+                                <td class="py-2.5 px-3 font-bold text-slate-800 dark:text-slate-200">Độ chính xác định
+                                    lượng</td>
+                                <td class="py-2.5 px-3 text-center font-semibold text-blue-900 dark:text-sky-400">25%
+                                </td>
+                                <td class="py-2.5 px-3">Thống kê khớp số lượng ý kiến phân rã theo từng Vụ (Tổng hợp:
+                                    23, Chế độ: 30, Pháp chế: 40). Không xảy ra lỗi bỏ sót dữ liệu hay đếm lặp dòng văn
+                                    bản.</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2.5 px-3 text-center">2</td>
+                                <td class="py-2.5 px-3 font-bold text-slate-800 dark:text-slate-200">Độ sâu pháp lý và
+                                    nghiệp vụ</td>
+                                <td class="py-2.5 px-3 text-center font-semibold text-blue-900 dark:text-sky-400">25%
+                                </td>
+                                <td class="py-2.5 px-3">Nhận diện đúng các vướng mắc của Luật chuyên ngành (Luật Ngân
+                                    sách nhà nước, Luật Đầu tư công, Luật Đất đai). Tóm tắt chính xác nội dung cốt lõi
+                                    của các hồ sơ nghiệp vụ phức tạp.</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2.5 px-3 text-center">3</td>
+                                <td class="py-2.5 px-3 font-bold text-slate-800 dark:text-slate-200">Nhận diện ngữ cảnh
+                                    điều hành</td>
+                                <td class="py-2.5 px-3 text-center font-semibold text-blue-900 dark:text-sky-400">20%
+                                </td>
+                                <td class="py-2.5 px-3">Phân biệt rõ ý kiến nghiệp vụ cốt lõi và ý kiến kỹ thuật biên
+                                    tập văn bản. Hiểu rõ vai trò chỉ đạo của Lãnh đạo ngành và tính độc lập của Đoàn
+                                    kiểm toán.</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2.5 px-3 text-center">4</td>
+                                <td class="py-2.5 px-3 font-bold text-slate-800 dark:text-slate-200">Kiểm soát thông tin
+                                    sai lệch</td>
+                                <td class="py-2.5 px-3 text-center font-semibold text-blue-900 dark:text-sky-400">20%
+                                </td>
+                                <td class="py-2.5 px-3">Không tự ý sáng tạo số liệu, không tự vẽ bảng thống kê giả lập
+                                    không có trong tài liệu gốc. Ghi nhận trung thực các giới hạn thông tin có trong văn
+                                    bản.</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2.5 px-3 text-center">5</td>
+                                <td class="py-2.5 px-3 font-bold text-slate-800 dark:text-slate-200">Văn phong và thể
+                                    thức hành chính</td>
+                                <td class="py-2.5 px-3 text-center font-semibold text-blue-900 dark:text-sky-400">10%
+                                </td>
+                                <td class="py-2.5 px-3">Sử dụng thuật ngữ công vụ chuẩn mực, trang trọng. Trình bày mạch
+                                    lạc, cấu trúc báo cáo dễ rà soát nhanh, phân mục rõ ràng.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+                    <!-- Radar Info & Weighted Score Table -->
+                    <div class="lg:col-span-6 space-y-6 flex flex-col justify-between">
+                        <div
+                            class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
+                            <h3
+                                class="text-base font-bold text-slate-800 dark:text-slate-200 mb-2 flex items-center gap-1.5">
+                                🎯 Bảng 2: Điểm số đối chiếu năng lực thực tế & Tổng hợp có trọng số
+                            </h3>
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-4 leading-normal">
+                                Điểm tổng hợp được tự động cập nhật theo trọng số trượt hiện hành từ Bộ mô phỏng dữ
+                                liệu. Xếp hạng dựa trên điểm số trọng số cuối cùng.
+                            </p>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse text-[11px] md:text-xs">
+                                    <thead>
+                                        <tr
+                                            class="border-b border-slate-200 dark:border-slate-800 text-slate-400 bg-slate-50 dark:bg-slate-950">
+                                            <th class="py-2 px-2 font-semibold">Mô hình AI</th>
+                                            <th class="py-2 px-2 font-semibold text-center">Xếp hạng</th>
+                                            <th class="py-2 px-2 font-semibold text-center">Công thức tính điểm trọng số
+                                            </th>
+                                            <th class="py-2 px-2 font-semibold text-right">Điểm tổng (Hệ 10)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="weighted_scores_table"
+                                        class="divide-y divide-slate-100 dark:divide-slate-800">
+                                        <!-- Dynamically populated by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div
+                            class="bg-teal-50 dark:bg-teal-950/20 p-4 rounded-xl border border-teal-100 dark:border-teal-900/50">
+                            <h4
+                                class="font-bold text-teal-900 dark:text-sky-300 text-xs uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                                ⚖️ Nhận xét đánh giá thực tế của Tổ nghiên cứu (Báo cáo điểm số)
+                            </h4>
+                            <p class="text-[11px] text-slate-600 dark:text-slate-400 leading-normal text-justify">
+                                Claude đạt điểm tối ưu nhất về tư duy nghiệp vụ và kiểm soát sai lệch (9.5 điểm), xếp
+                                Hạng 1 (Xuất sắc). ChatGPT và Copilot xếp hạng Trung bình do lỗi bỏ sót dữ liệu định
+                                lượng mặc dù có văn phong hành chính tốt. Gemini xếp cuối cùng (Yếu) do lỗi đếm lặp dữ
+                                liệu lớn và áp dụng sai phương pháp luận hành chính công (lỗi ma trận Đúng/Sai).
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Radar Chart -->
+                    <div class="lg:col-span-6 flex justify-center">
+                        <div
+                            class="w-full max-w-[450px] h-full min-h-[385px] bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800/80 flex flex-col justify-between">
+                            <div
+                                class="text-center font-bold text-sm text-slate-600 dark:text-slate-400 uppercase mb-2">
+                                Biểu đồ Radar Năng lực Đa Chiều của các AI</div>
+                            <div class="relative flex-1 min-h-[300px]">
+                                <canvas id="radarChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB CONTENT 4: WORKFLOW -->
+        <section id="tab-workflow" class="tab-pane space-y-8 hidden">
+            <div
+                class="glass-card rounded-3xl p-6 md:p-8 border-t-4 border-emerald-500 shadow-xl shadow-slate-200/50 dark:shadow-none bg-slate-900 text-white dark:bg-slate-950">
+                <div class="max-w-4xl mx-auto text-center mb-8">
+                    <h2 class="text-2xl md:text-3xl font-bold text-teal-400 mb-3 uppercase tracking-wide font-outfit">
+                        PHẦN VI: KẾT LUẬN VÀ QUY TRÌNH PHỐI HỢP CHUẨN HÓA</h2>
+                    <p class="text-slate-300 dark:text-slate-400 leading-relaxed text-sm md:text-base">
+                        Mô hình kết hợp "Human-in-the-loop" lấy con người làm trung tâm giám sát theo quy trình 3 giai
+                        đoạn của Tổ nghiên cứu.
+                    </p>
+                </div>
+
+                <div
+                    class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 text-xs md:text-sm text-slate-300 leading-relaxed">
+                    <div class="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/60">
+                        <h3 class="font-bold text-teal-400 text-sm uppercase tracking-wide mb-3">6.1. Kết luận về công
+                            cụ tối ưu</h3>
+                        <p class="mb-3 text-justify">
+                            <strong class="text-white">CLAUDE LÀ CÔNG CỤ TỐT VÀ PHÙ HỢP NHẤT.</strong> Mô hình này vượt
+                            trội hoàn toàn về khả năng đọc hiểu tài liệu dài và cấu trúc hóa dữ liệu tiệm cận thực tế
+                            (94 ý kiến sát thực tế là 93). Claude thể hiện tư duy pháp lý sắc bén khi bóc tách chính xác
+                            các tranh biện phức tạp (như Quỹ phát triển đất, Hợp đồng EC, Thuế tài nguyên), bảo đảm ngôn
+                            ngữ đầu ra tương thích tối đa với môi trường kiểm toán nhà nước.
+                        </p>
+                        <p class="text-justify text-[11px] text-slate-400">
+                            Hạn chế của các công cụ còn lại: ChatGPT và Copilot bị lỗi đồng dạng khi bỏ sót một lượng
+                            lớn dữ liệu cốt lõi, tự ý đơn giản hóa hồ sơ kiểm toán. Gemini gặp lỗi đếm lặp dữ liệu lớn
+                            và áp đặt sai phương pháp luận (đánh giá Đúng/Sai) vào quy trình thẩm định.
+                        </p>
+                    </div>
+                    <div class="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/60">
+                        <h3 class="font-bold text-teal-400 text-sm uppercase tracking-wide mb-3">6.2. Đề xuất kiến nghị
+                            áp dụng</h3>
+                        <ul class="space-y-2 list-decimal pl-4 text-justify text-[11px] md:text-xs">
+                            <li><strong>Chính thức áp dụng thử nghiệm Claude</strong> làm trợ lý ảo hỗ trợ kiểm toán
+                                viên trong khâu rà soát nhanh Dự thảo báo cáo tiếp thu giải trình ý kiến thẩm định.</li>
+                            <li><strong>Thiết lập quy trình kiểm soát phối hợp (Human-in-the-loop):</strong> Kết hợp sức
+                                mạnh tự động hóa của AI và sự phê duyệt nghiệp vụ của con người.</li>
+                            <li><strong>Xây dựng bộ câu lệnh mẫu chuẩn hóa:</strong> Sử dụng hệ thống khung tiêu chí tại
+                                Phần IV làm dữ liệu chỉ dẫn đầu vào để định hướng tư duy phân tích cho AI trong các kỳ
+                                kiểm toán tiếp theo.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Stepper Blocks -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div id="step-btn-1" onclick="selectWorkflowStep(1)"
+                        class="flow-step cursor-pointer bg-slate-800 dark:bg-slate-900 p-5 rounded-2xl border border-teal-500 flex flex-col items-center text-center shadow-lg transition duration-200 border-teal-500 shadow-teal-900/20">
+                        <div class="text-3xl mb-3">📄</div>
+                        <h3 class="font-bold text-sm text-white uppercase tracking-wider">Bước 1: Hồ Sơ Đầu Vào</h3>
+                        <p class="text-xs text-slate-400 mt-2">Nạp Dự thảo báo cáo và biên bản ý kiến giải trình Ninh
+                            Bình 2022.</p>
+                    </div>
+
+                    <div id="step-btn-2" onclick="selectWorkflowStep(2)"
+                        class="flow-step cursor-pointer bg-slate-800/40 dark:bg-slate-900/40 hover:bg-slate-700/80 p-5 rounded-2xl border border-slate-700 flex flex-col items-center text-center shadow-lg transition duration-200">
+                        <div class="text-3xl mb-3">🤖</div>
+                        <h3 class="font-bold text-sm text-white uppercase tracking-wider">Bước 2: Xử Lý Tự Động</h3>
+                        <p class="text-xs text-slate-400 mt-2">Mô hình AI phân rã văn bản và bóc tách các ý kiến theo
+                            thẻ nghiệp vụ.</p>
+                    </div>
+
+                    <div id="step-btn-3" onclick="selectWorkflowStep(3)"
+                        class="flow-step cursor-pointer bg-slate-800/40 dark:bg-slate-900/40 hover:bg-slate-700/80 p-5 rounded-2xl border border-slate-700 flex flex-col items-center text-center shadow-lg transition duration-200">
+                        <div class="text-3xl mb-3">🕵️</div>
+                        <h3 class="font-bold text-sm text-white uppercase tracking-wider">Bước 3: Con Người Đối Soát
+                        </h3>
+                        <p class="text-xs text-slate-400 mt-2">Kiểm toán viên rà soát lỗi ảo tưởng hoặc thiếu hụt của
+                            AI.</p>
+                    </div>
+
+                    <div id="step-btn-4" onclick="selectWorkflowStep(4)"
+                        class="flow-step cursor-pointer bg-slate-800/40 dark:bg-slate-900/40 hover:bg-slate-700/80 p-5 rounded-2xl border border-slate-700 flex flex-col items-center text-center shadow-lg transition duration-200">
+                        <div class="text-3xl mb-3">✅</div>
+                        <h3 class="font-bold text-sm text-white uppercase tracking-wider">Bước 4: Phát Hành Báo Cáo</h3>
+                        <p class="text-xs text-slate-400 mt-2">Xuất báo cáo giải trình chính thức đảm bảo an toàn pháp
+                            lý.</p>
+                    </div>
+                </div>
+
+                <!-- Simulated Workspace Panel -->
+                <div class="mt-8 bg-slate-950 rounded-2xl p-6 border border-slate-800 relative shadow-inner">
+                    <div class="absolute top-4 right-4 flex items-center gap-1.5 text-xs text-slate-500">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Terminal Hoạt Động
+                    </div>
+
+                    <div id="workflow-simulated-content" class="font-mono text-xs text-teal-400 space-y-4">
+                        <!-- Dynamically populated simulation window -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- CHATBOT ASSISTANT (FLOATING BUBBLE & BOX) -->
+    <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        <!-- Chatbox window -->
+        <div id="chatboxWindow"
+            class="w-80 md:w-96 h-[450px] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden mb-4 transition-all duration-300 transform scale-0 origin-bottom-right opacity-0 pointer-events-none">
+
+            <!-- Chat Header -->
+            <div class="bg-blue-900 text-white p-4 flex justify-between items-center shadow-sm">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">🤖</span>
+                    <div>
+                        <h3 class="font-bold text-sm leading-tight">Trợ Lý Ảo Kiểm Toán AI</h3>
+                        <span class="text-[10px] text-teal-300 font-medium">Đang trực tuyến • Ninh Bình 2022</span>
+                    </div>
+                </div>
+                <button onclick="toggleChat()" class="p-1 hover:bg-white/10 rounded-full text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Chat Messages Content -->
+            <div id="chatMessages"
+                class="flex-1 p-4 overflow-y-auto custom-scrollbar space-y-4 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100">
+                <div class="flex gap-2">
+                    <div class="text-xl">🤖</div>
+                    <div
+                        class="bg-slate-200 dark:bg-slate-800 px-3 py-2 rounded-2xl rounded-tl-none text-xs leading-relaxed max-w-[80%]">
+                        Xin chào! Tôi có thể giải đáp các thắc mắc về Báo cáo đánh giá AI cho hồ sơ kiểm toán Ninh Bình
+                        2022. Hãy chọn một câu hỏi gợi ý bên dưới.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pre-populated Quick Questions -->
+            <div
+                class="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto">
+                <button onclick="askPresetQuestion(1)"
+                    class="text-[10px] bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 py-1.5 px-2.5 rounded-full text-slate-700 dark:text-slate-300 font-semibold transition">
+                    Gemini đếm lặp do đâu?
+                </button>
+                <button onclick="askPresetQuestion(2)"
+                    class="text-[10px] bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 py-1.5 px-2.5 rounded-full text-slate-700 dark:text-slate-300 font-semibold transition">
+                    Vì sao Claude tối ưu nhất?
+                </button>
+                <button onclick="askPresetQuestion(3)"
+                    class="text-[10px] bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 py-1.5 px-2.5 rounded-full text-slate-700 dark:text-slate-300 font-semibold transition">
+                    ChatGPT và Copilot khác gì?
+                </button>
+                <button onclick="askPresetQuestion(4)"
+                    class="text-[10px] bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 py-1.5 px-2.5 rounded-full text-slate-700 dark:text-slate-300 font-semibold transition">
+                    Sự việc Quỹ đất Ninh Bình?
+                </button>
+            </div>
+        </div>
+
+        <!-- Chat bubble button -->
+        <button id="chatBubble" onclick="toggleChat()"
+            class="w-14 h-14 bg-blue-900 hover:bg-blue-800 text-white rounded-full flex items-center justify-center shadow-2xl transition transform hover:scale-105 active:scale-95 border-2 border-white dark:border-slate-800">
+            <span class="text-2xl" id="chatBubbleIcon">💬</span>
+        </button>
+    </div>
+
+    <!-- DEPARTMENT MODAL -->
+    <div id="deptModal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-4 backdrop-blur-md">
+        <div
+            class="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in duration-200 flex flex-col max-h-[85vh]">
+            <div
+                class="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-blue-950 text-white">
+                <h3 class="font-outfit font-bold text-lg" id="modal_dept_title">Chi tiết Vụ</h3>
+                <button onclick="closeModal()" class="p-1 hover:bg-white/10 rounded-full text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-4 text-sm" id="modal_dept_body">
+                <!-- Dynamically populated body -->
+            </div>
+
+            <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-right">
+                <button onclick="closeModal()"
+                    class="px-5 py-2 font-bold text-xs bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl transition">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-blue-950 py-8 text-center text-slate-400 text-xs border-t border-slate-800 mt-20">
+        <p class="mb-2">© 2026 Bản quyền thuộc về Kiểm toán nhà nước - Tổ Nghiên cứu và ứng dụng giải pháp AI thương mại
+            trong hoạt động của Kiểm toán nhà nước.</p>
+        <p>Báo cáo chuyên sâu phục vụ hoạt động hiện đại hóa công vụ hành chính.</p>
+    </footer>
+
+    <script>
+        // CHART CONTEXT & DATA STATE
+        const state = {
+            // Ground truth opinions
+            groundTruth: { phapChe: 40, cheDo: 30, tongHop: 23 },
+            // Models outputs
+            models: {
+                claude: { count: 94, scores: [9.0, 9.5, 9.0, 9.5, 9.0] },
+                chatgpt: { count: 50, scores: [5.0, 6.5, 6.0, 4.0, 9.0] },
+                copilot: { count: 50, scores: [5.0, 6.5, 6.0, 4.0, 8.5] },
+                gemini: { count: 162, scores: [3.0, 5.0, 4.0, 2.0, 7.0] },
+                custom: { count: 80, scores: [7.5, 8.0, 7.0, 7.5, 8.0], enabled: false, name: 'AI Tùy Chọn' }
+            },
+            // Weight percentage
+            weights: [25, 25, 20, 20, 10]
+        };
+
+        // Global references to Chart.js instances
+        let doughnutChartInst = null;
+        let barChartInst = null;
+        let radarChartInst = null;
+
+        // Label Helper
+        function wrapLabel(label) {
+            if (label.length <= 16) return label;
+            const words = label.split(' ');
+            let lines = [];
+            let currentLine = '';
+            words.forEach(word => {
+                if ((currentLine + word).length > 16) {
+                    if (currentLine) lines.push(currentLine.trim());
+                    currentLine = word + ' ';
+                } else {
+                    currentLine += word + ' ';
+                }
+            });
+            if (currentLine) lines.push(currentLine.trim());
+            return lines;
+        }
+
+        // Set up baseline font settings for Chart.js
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#64748b';
+
+        // Toggle functions
+        function toggleSimulator() {
+            const drawer = document.getElementById('simulatorDrawer');
+            const backdrop = document.getElementById('simulatorBackdrop');
+            const isHidden = drawer.classList.contains('-translate-x-full');
+
+            if (isHidden) {
+                drawer.classList.remove('-translate-x-full');
+                backdrop.classList.remove('hidden');
+            } else {
+                drawer.classList.add('-translate-x-full');
+                backdrop.classList.add('hidden');
+            }
+        }
+
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const sunIcon = document.getElementById('sunIcon');
+            const moonIcon = document.getElementById('moonIcon');
+
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                html.classList.add('light');
+                localStorage.setItem('theme', 'light');
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+            } else {
+                html.classList.remove('light');
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                moonIcon.classList.add('hidden');
+                sunIcon.classList.remove('hidden');
+            }
+            // Refresh chart text colors if dark mode changes
+            const textColor = html.classList.contains('dark') ? '#94a3b8' : '#64748b';
+            Chart.defaults.color = textColor;
+            if (doughnutChartInst) doughnutChartInst.update();
+            if (barChartInst) barChartInst.update();
+            if (radarChartInst) {
+                radarChartInst.options.scales.r.pointLabels.color = html.classList.contains('dark') ? '#e2e8f0' : '#1e293b';
+                radarChartInst.update();
+            }
+        }
+
+        // Apply theme on load
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme');
+            const sunIcon = document.getElementById('sunIcon');
+            const moonIcon = document.getElementById('moonIcon');
+
+            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                document.documentElement.classList.remove('light');
+                moonIcon.classList.add('hidden');
+                sunIcon.classList.remove('hidden');
+                Chart.defaults.color = '#94a3b8';
+            } else {
+                document.documentElement.classList.add('light');
+                document.documentElement.classList.remove('dark');
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+                Chart.defaults.color = '#64748b';
+            }
+
+            initCharts();
+            updateDashboardDOM();
+            selectWorkflowStep(1);
+        });
+
+        // Custom Model activation
+        function toggleCustomModel() {
+            const active = document.getElementById('custom_active').checked;
+            state.models.custom.enabled = active;
+
+            const customInputs = document.getElementById('custom_model_inputs');
+            if (active) {
+                customInputs.classList.remove('opacity-40', 'pointer-events-none');
+            } else {
+                customInputs.classList.add('opacity-40', 'pointer-events-none');
+            }
+            updateState();
+        }
+
+        // Adjust weights dynamically while maintaining 100% total
+        function adjustWeights(index) {
+            const w1 = parseInt(document.getElementById('w1').value);
+            const w2 = parseInt(document.getElementById('w2').value);
+            const w3 = parseInt(document.getElementById('w3').value);
+            const w4 = parseInt(document.getElementById('w4').value);
+            const w5 = parseInt(document.getElementById('w5').value);
+
+            const sum = w1 + w2 + w3 + w4 + w5;
+            document.getElementById('weight_sum').innerText = `Tổng: ${sum}%`;
+
+            if (sum !== 100) {
+                document.getElementById('weight_sum').classList.add('text-red-500');
+                document.getElementById('weight_sum').classList.remove('text-slate-400');
+            } else {
+                document.getElementById('weight_sum').classList.remove('text-red-500');
+                document.getElementById('weight_sum').classList.add('text-slate-400');
+            }
+
+            state.weights = [w1, w2, w3, w4, w5];
+
+            document.getElementById('val_w1').innerText = `${w1}%`;
+            document.getElementById('val_w2').innerText = `${w2}%`;
+            document.getElementById('val_w3').innerText = `${w3}%`;
+            document.getElementById('val_w4').innerText = `${w4}%`;
+            document.getElementById('val_w5').innerText = `${w5}%`;
+
+            updateCalculations();
+        }
+
+        // Update State from DOM inputs
+        function updateState() {
+            // Ground truth
+            state.groundTruth.phapChe = parseInt(document.getElementById('gt_phapche').value);
+            state.groundTruth.cheDo = parseInt(document.getElementById('gt_chedo').value);
+            state.groundTruth.tongHop = parseInt(document.getElementById('gt_tonghop').value);
+
+            document.getElementById('val_gt_phapche').innerText = state.groundTruth.phapChe;
+            document.getElementById('val_gt_chedo').innerText = state.groundTruth.cheDo;
+            document.getElementById('val_gt_tonghop').innerText = state.groundTruth.tongHop;
+
+            // Model counts
+            state.models.claude.count = parseInt(document.getElementById('count_claude').value);
+            state.models.chatgpt.count = parseInt(document.getElementById('count_chatgpt').value);
+            state.models.copilot.count = parseInt(document.getElementById('count_copilot').value);
+            state.models.gemini.count = parseInt(document.getElementById('count_gemini').value);
+            state.models.custom.count = parseInt(document.getElementById('count_custom').value);
+
+            document.getElementById('val_count_claude').innerText = state.models.claude.count;
+            document.getElementById('val_count_chatgpt').innerText = state.models.chatgpt.count;
+            document.getElementById('val_count_copilot').innerText = state.models.copilot.count;
+            document.getElementById('val_count_gemini').innerText = state.models.gemini.count;
+            document.getElementById('val_count_custom').innerText = state.models.custom.count;
+
+            state.models.custom.name = document.getElementById('custom_name').value || 'AI Tùy Chọn';
+
+            updateCalculations();
+        }
+
+        // Reset Simulator to original Ninh Binh 2022 default values
+        function resetSimulator() {
+            document.getElementById('gt_phapche').value = 40;
+            document.getElementById('gt_chedo').value = 30;
+            document.getElementById('gt_tonghop').value = 23;
+
+            document.getElementById('count_claude').value = 94;
+            document.getElementById('count_chatgpt').value = 50;
+            document.getElementById('count_copilot').value = 50;
+            document.getElementById('count_gemini').value = 162;
+
+            document.getElementById('custom_active').checked = false;
+            document.getElementById('count_custom').value = 80;
+            document.getElementById('custom_name').value = 'AI Tùy Chọn';
+
+            document.getElementById('w1').value = 25;
+            document.getElementById('w2').value = 25;
+            document.getElementById('w3').value = 20;
+            document.getElementById('w4').value = 20;
+            document.getElementById('w5').value = 10;
+
+            toggleCustomModel();
+            adjustWeights(1);
+            updateState();
+        }
+
+        // Calculate percentages, update DOM summary cards, accuracy leaderboards, radar calculations
+        function updateCalculations() {
+            const gtTotal = state.groundTruth.phapChe + state.groundTruth.cheDo + state.groundTruth.tongHop;
+            document.getElementById('summary_gt_total').innerText = gtTotal;
+
+            // Update Ground truth card counts
+            document.getElementById('card_gt_phapche').innerText = `${state.groundTruth.phapChe} ý kiến`;
+            document.getElementById('card_gt_chedo').innerText = `${state.groundTruth.cheDo} ý kiến`;
+            document.getElementById('card_gt_tonghop').innerText = `${state.groundTruth.tongHop} ý kiến`;
+
+            // Calculate deviations
+            const calcDev = (count) => {
+                const diff = ((count - gtTotal) / gtTotal) * 100;
+                return (diff >= 0 ? '+' : '') + diff.toFixed(1) + '%';
+            };
+
+            document.getElementById('summary_dev_claude').innerText = calcDev(state.models.claude.count);
+            document.getElementById('summary_dev_chatgpt').innerText = calcDev(state.models.chatgpt.count);
+            document.getElementById('summary_dev_copilot').innerText = calcDev(state.models.copilot.count);
+            document.getElementById('summary_dev_gemini').innerText = calcDev(state.models.gemini.count);
+
+            // Update charts
+            updateChartsData(gtTotal);
+            updateLeaderboards(gtTotal);
+            updateWeightedScoresTable();
+        }
+
+        // Recalculate Leaderboards and render in HTML
+        function updateLeaderboards(gtTotal) {
+            const modelsList = [
+                { key: 'claude', name: 'Claude 3.5 Sonnet', count: state.models.claude.count, color: 'text-sky-500' },
+                { key: 'chatgpt', name: 'ChatGPT', count: state.models.chatgpt.count, color: 'text-amber-500' },
+                { key: 'copilot', name: 'Microsoft Copilot', count: state.models.copilot.count, color: 'text-indigo-500 font-semibold' },
+                { key: 'gemini', name: 'Google Gemini', count: state.models.gemini.count, color: 'text-rose-500' }
+            ];
+
+            if (state.models.custom.enabled) {
+                modelsList.push({ key: 'custom', name: state.models.custom.name, count: state.models.custom.count, color: 'text-purple-600' });
+            }
+
+            // Rank models based on absolute deviation (smaller absolute deviation is better)
+            modelsList.forEach(m => {
+                m.absDev = Math.abs(m.count - gtTotal);
+                m.pctDev = (((m.count - gtTotal) / gtTotal) * 100).toFixed(1);
+            });
+
+            modelsList.sort((a, b) => a.absDev - b.absDev);
+
+            const container = document.getElementById('accuracy_leaderboard');
+            container.innerHTML = '';
+
+            modelsList.forEach((m, idx) => {
+                const rankIcons = ['🥇', '🥈', '🥉', '🏅'];
+                const rankIcon = rankIcons[idx] || '🏅';
+
+                let comment = '';
+                if (m.pctDev == 0) comment = 'Chính xác hoàn hảo!';
+                else if (Math.abs(m.pctDev) <= 5) comment = 'Độ chính xác rất cao';
+                else if (m.pctDev > 5 && m.pctDev <= 25) comment = 'Xu hướng đếm lặp nhẹ';
+                else if (m.pctDev < -5 && m.pctDev >= -25) comment = 'Bỏ sót nhẹ dữ liệu';
+                else if (m.pctDev > 25) comment = 'Đếm lặp cực kỳ nhiều (Ảo tưởng)';
+                else if (m.pctDev < -25) comment = 'Bỏ sót nghiêm trọng thông tin';
+
+                const row = document.createElement('div');
+                row.className = 'py-3 flex items-center justify-between text-xs md:text-sm';
+                row.innerHTML = `
+      <div class="flex items-center gap-3">
+        <span class="text-xl">${rankIcon}</span>
+        <div>
+          <strong class="${m.color}">${m.name}</strong>
+          <span class="text-slate-400 block text-[10px] mt-0.5">${comment}</span>
+        </div>
+      </div>
+      <div class="text-right">
+        <span class="font-mono font-bold">${m.count} ý kiến</span>
+        <span class="text-[10px] block font-semibold ${Math.abs(m.pctDev) <= 5 ? 'text-teal-600' : 'text-slate-500'}">Lệch: ${m.pctDev >= 0 ? '+' : ''}${m.pctDev}%</span>
+      </div>
+    `;
+                container.appendChild(row);
+            });
+        }
+
+        // Recalculate Weighted Scores Table in qualitative tab
+        function updateWeightedScoresTable() {
+            const modelsList = [
+                { key: 'claude', name: 'Claude 3.5 Sonnet', scores: state.models.claude.scores, color: 'text-sky-500' },
+                { key: 'chatgpt', name: 'ChatGPT', scores: state.models.chatgpt.scores, color: 'text-amber-500' },
+                { key: 'copilot', name: 'Microsoft Copilot', scores: state.models.copilot.scores, color: 'text-indigo-500' },
+                { key: 'gemini', name: 'Google Gemini', scores: state.models.gemini.scores, color: 'text-rose-500' }
+            ];
+
+            if (state.models.custom.enabled) {
+                modelsList.push({ key: 'custom', name: state.models.custom.name, scores: state.models.custom.scores, color: 'text-purple-600' });
+            }
+
+            const w = state.weights;
+
+            modelsList.forEach(m => {
+                // Weighted average: (s1*w1 + s2*w2 + ...) / 100
+                m.finalScore = ((m.scores[0] * w[0] + m.scores[1] * w[1] + m.scores[2] * w[2] + m.scores[3] * w[3] + m.scores[4] * w[4]) / 100).toFixed(2);
+            });
+
+            modelsList.sort((a, b) => b.finalScore - a.finalScore);
+
+            const tbody = document.getElementById('weighted_scores_table');
+            tbody.innerHTML = '';
+
+            modelsList.forEach(m => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-slate-100 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-900/30 transition';
+                const rankLabels = { 'claude': '🥇 Hạng 1 (Xuất sắc)', 'chatgpt': '🥈 Hạng 2 (Trung bình)', 'copilot': '🥉 Hạng 3 (Trung bình)', 'gemini': '🏅 Hạng 4 (Yếu)', 'custom': '🏅 Tùy chọn' };
+                const rankLabel = rankLabels[m.key] || '🏅';
+
+                tr.innerHTML = `
+      <td class="py-3 px-2 font-semibold text-slate-800 dark:text-slate-200">
+        <span class="${m.color}">${m.name}</span>
+      </td>
+      <td class="py-3 px-2 text-center text-[10px] font-bold text-slate-500 dark:text-slate-400">
+        ${rankLabel}
+      </td>
+      <td class="py-3 px-2 text-center text-slate-400 font-mono text-[11px]">
+        (${m.scores[0]}x${w[0]}% + ${m.scores[1]}x${w[1]}% + ...)
+      </td>
+      <td class="py-3 px-2 text-right font-bold font-outfit text-base ${m.finalScore >= 7.5 ? 'text-teal-600' : (m.finalScore >= 5.0 ? 'text-amber-500' : 'text-rose-500')}">
+        ${m.finalScore} / 10
+      </td>
+    `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Initialise Chart.js graphs
+        function initCharts() {
+            const isDark = document.documentElement.classList.contains('dark');
+            const textColor = isDark ? '#94a3b8' : '#64748b';
+            const gridColor = isDark ? '#334155' : '#e2e8f0';
+
+            // 1. Doughnut chart
+            const ctxDonut = document.getElementById('groundTruthChart').getContext('2d');
+            const labelsDonut = ['Vụ Pháp chế', 'Vụ Chế độ & Kiểm soát', 'Vụ Tổng hợp'];
+            doughnutChartInst = new Chart(ctxDonut, {
+                type: 'doughnut',
+                data: {
+                    labels: labelsDonut.map(wrapLabel),
+                    datasets: [{
+                        data: [state.groundTruth.phapChe, state.groundTruth.cheDo, state.groundTruth.tongHop],
+                        backgroundColor: ['#1e3a8a', '#0d9488', '#f59e0b'],
+                        borderWidth: 0,
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                font: { family: 'Inter', size: 10 }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                            titleFont: { family: 'Inter', size: 12 },
+                            bodyFont: { family: 'Inter', size: 11 },
+                            padding: 10,
+                            cornerRadius: 6
+                        }
+                    }
+                }
+            });
+
+            // 2. Bar chart
+            const ctxBar = document.getElementById('quantitativeChart').getContext('2d');
+            const barLabels = ['Thực tế gốc', 'Claude 3.5 Sonnet', 'ChatGPT', 'Microsoft Copilot', 'Google Gemini'];
+            const barColors = ['#0f172a', '#0ea5e9', '#f59e0b', '#6366f1', '#e11d48'];
+            const barData = [93, state.models.claude.count, state.models.chatgpt.count, state.models.copilot.count, state.models.gemini.count];
+
+            barChartInst = new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: barLabels.map(wrapLabel),
+                    datasets: [{
+                        label: 'Số lượng ý kiến',
+                        data: barData,
+                        backgroundColor: barColors,
+                        borderRadius: 8,
+                        barThickness: 32
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { borderDash: [4, 4], color: gridColor },
+                            ticks: { font: { size: 10 } }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                            titleFont: { family: 'Inter', size: 12 },
+                            bodyFont: { family: 'Inter', size: 11 },
+                            padding: 10,
+                            cornerRadius: 6
+                        }
+                    }
+                }
+            });
+
+            // 3. Radar chart
+            const ctxRadar = document.getElementById('radarChart').getContext('2d');
+            const radarLabels = ['Độ chính xác định lượng', 'Pháp lý & nghiệp vụ', 'Ngữ cảnh điều hành', 'Kiểm soát sai lệch', 'Văn phong hành chính'];
+
+            const datasetsRadar = [
+                {
+                    label: 'Claude 3.5 Sonnet',
+                    data: state.models.claude.scores,
+                    fill: true,
+                    backgroundColor: 'rgba(14, 165, 233, 0.15)',
+                    borderColor: '#0ea5e9',
+                    pointBackgroundColor: '#0ea5e9',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#0ea5e9'
+                },
+                {
+                    label: 'ChatGPT',
+                    data: state.models.chatgpt.scores,
+                    fill: true,
+                    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                    borderColor: '#f59e0b',
+                    pointBackgroundColor: '#f59e0b',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#f59e0b'
+                },
+                {
+                    label: 'Microsoft Copilot',
+                    data: state.models.copilot.scores,
+                    fill: true,
+                    backgroundColor: 'rgba(99, 102, 241, 0.12)',
+                    borderColor: '#6366f1',
+                    pointBackgroundColor: '#6366f1',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#6366f1'
+                },
+                {
+                    label: 'Google Gemini',
+                    data: state.models.gemini.scores,
+                    fill: true,
+                    backgroundColor: 'rgba(225, 29, 72, 0.15)',
+                    borderColor: '#e11d48',
+                    pointBackgroundColor: '#e11d48',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#e11d48'
+                }
+            ];
+
+            radarChartInst = new Chart(ctxRadar, {
+                type: 'radar',
+                data: {
+                    labels: radarLabels.map(wrapLabel),
+                    datasets: datasetsRadar
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: gridColor },
+                            grid: { color: gridColor },
+                            pointLabels: {
+                                font: { family: 'Inter', size: 10, weight: '600' },
+                                color: isDark ? '#e2e8f0' : '#1e293b'
+                            },
+                            ticks: { backdropColor: 'transparent', min: 0, max: 10, stepSize: 2, font: { size: 9 } }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 10,
+                                font: { family: 'Inter', size: 10 }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                            titleFont: { family: 'Inter', size: 12 },
+                            bodyFont: { family: 'Inter', size: 11 },
+                            padding: 10,
+                            cornerRadius: 6
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update Chart data on Simulator input changes
+        function updateChartsData(gtTotal) {
+            // Update Doughnut
+            if (doughnutChartInst) {
+                doughnutChartInst.data.datasets[0].data = [state.groundTruth.phapChe, state.groundTruth.cheDo, state.groundTruth.tongHop];
+                doughnutChartInst.update();
+            }
+
+            // Update Bar
+            if (barChartInst) {
+                const labels = ['Thực tế gốc', 'Claude 3.5 Sonnet', 'ChatGPT', 'Microsoft Copilot', 'Google Gemini'];
+                const data = [gtTotal, state.models.claude.count, state.models.chatgpt.count, state.models.copilot.count, state.models.gemini.count];
+                const colors = [
+                    document.documentElement.classList.contains('dark') ? '#f8fafc' : '#0f172a',
+                    '#0ea5e9',
+                    '#f59e0b',
+                    '#6366f1',
+                    '#e11d48'
+                ];
+
+                if (state.models.custom.enabled) {
+                    labels.push(state.models.custom.name);
+                    data.push(state.models.custom.count);
+                    colors.push('#9333ea');
+                }
+
+                barChartInst.data.labels = labels.map(wrapLabel);
+                barChartInst.data.datasets[0].data = data;
+                barChartInst.data.datasets[0].backgroundColor = colors;
+                barChartInst.update();
+            }
+
+            // Update Radar datasets
+            if (radarChartInst) {
+                const datasets = [
+                    {
+                        label: 'Claude 3.5 Sonnet',
+                        data: state.models.claude.scores,
+                        fill: true,
+                        backgroundColor: 'rgba(14, 165, 233, 0.15)',
+                        borderColor: '#0ea5e9',
+                        pointBackgroundColor: '#0ea5e9',
+                        pointBorderColor: '#fff'
+                    },
+                    {
+                        label: 'ChatGPT',
+                        data: state.models.chatgpt.scores,
+                        fill: true,
+                        backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                        borderColor: '#f59e0b',
+                        pointBackgroundColor: '#f59e0b',
+                        pointBorderColor: '#fff'
+                    },
+                    {
+                        label: 'Microsoft Copilot',
+                        data: state.models.copilot.scores,
+                        fill: true,
+                        backgroundColor: 'rgba(99, 102, 241, 0.12)',
+                        borderColor: '#6366f1',
+                        pointBackgroundColor: '#6366f1',
+                        pointBorderColor: '#fff'
+                    },
+                    {
+                        label: 'Google Gemini',
+                        data: state.models.gemini.scores,
+                        fill: true,
+                        backgroundColor: 'rgba(225, 29, 72, 0.15)',
+                        borderColor: '#e11d48',
+                        pointBackgroundColor: '#e11d48',
+                        pointBorderColor: '#fff'
+                    }
+                ];
+
+                if (state.models.custom.enabled) {
+                    datasets.push({
+                        label: state.models.custom.name,
+                        data: state.models.custom.scores,
+                        fill: true,
+                        backgroundColor: 'rgba(147, 51, 234, 0.15)',
+                        borderColor: '#9333ea',
+                        pointBackgroundColor: '#9333ea',
+                        pointBorderColor: '#fff'
+                    });
+                }
+
+                radarChartInst.data.datasets = datasets;
+                radarChartInst.update();
+            }
+        }
+
+        // Update global DOM displays
+        function updateDashboardDOM() {
+            updateState();
+        }
+
+        // Tab switcher logic
+        function switchTab(tabId) {
+            // Hide all sections
+            document.querySelectorAll('.tab-pane').forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('block');
+            });
+
+            // Show target section
+            const target = document.getElementById(tabId);
+            target.classList.remove('hidden');
+            target.classList.add('block');
+
+            // Reset tab button states
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = "tab-btn flex-1 min-w-[150px] py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400";
+            });
+
+            // Highlight selected button
+            const activeBtn = document.getElementById(`btn-${tabId}`);
+            activeBtn.className = "tab-btn flex-1 min-w-[150px] py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 bg-white dark:bg-slate-800 text-blue-900 dark:text-sky-400 border border-slate-200/50 dark:border-slate-700/50 shadow-sm";
+        }
+
+        // Show Department Specific Modal
+        const deptModalData = {
+            phapce: {
+                title: 'Vụ Pháp chế - Phân rã 40 ý kiến thẩm định chi tiết',
+                body: `
+      <div class="space-y-3 text-slate-700 dark:text-slate-300">
+        <div class="bg-blue-50 dark:bg-blue-950/40 p-3 rounded-lg border border-blue-100 dark:border-blue-900/40 text-xs">
+          <strong>Cấu trúc phân rã khoa học:</strong>
+          <ul class="list-disc pl-4 mt-1 space-y-1">
+            <li><strong>Mục 1 (Ý kiến đánh giá):</strong> 16 ý kiến (từ 1.1 đến 1.16) về tính hợp pháp của các quyết định hành chính địa phương Ninh Bình.</li>
+            <li><strong>Mục 2 (Kiến nghị xử lý tài chính):</strong> 05 ý kiến (từ 2.1 đến 2.5) về thu hồi, nộp NS các khoản chi sai quy định.</li>
+            <li><strong>Mục 3 (Kiến nghị khác):</strong> 14 ý kiến (từ 3.1 đến 3.14) chấn chỉnh quy trình.</li>
+            <li><strong>Mục 4 (Văn bản khác):</strong> 05 ý kiến (từ 4.1 đến 4.5).</li>
+          </ul>
+        </div>
+        
+        <p class="font-semibold text-xs mt-3">Mẫu văn bản thực tế tiêu biểu:</p>
+        <div class="bg-slate-50 dark:bg-slate-950 p-2.5 rounded border border-slate-100 dark:border-slate-800 font-mono text-[10px] leading-relaxed text-blue-900 dark:text-sky-300">
+          "Đoàn kiểm toán cần bổ sung đánh giá tính hợp pháp trong việc phân bổ vốn đầu tư cho 12 dự án khi chưa có quyết định phê duyệt chủ trương đầu tư của HĐND tỉnh Ninh Bình theo quy định tại Khoản 2 Điều 52 Luật Đầu tư công năm 2019."
+        </div>
+        
+        <p class="font-semibold text-xs mt-3">Kết quả bóc tách của các AI:</p>
+        <ul class="list-disc pl-4 text-xs space-y-1 text-slate-600 dark:text-slate-400">
+          <li><strong>Claude 3.5 Sonnet:</strong> Bóc tách trọn vẹn và phân nhóm chính xác cả 40 ý kiến Pháp chế.</li>
+          <li><strong>ChatGPT & Copilot:</strong> Chỉ nhận diện được 15 ý kiến (bỏ sót 62%), làm mất đi các chi tiết về điều khoản vi phạm của Luật Đầu tư công.</li>
+          <li><strong>Google Gemini:</strong> Đếm lặp thành 60 ý kiến do tự tách các câu giải trình của Đoàn kiểm toán thành ý kiến độc lập.</li>
+        </ul>
+      </div>
+    `
+            },
+            chedo: {
+                title: 'Vụ Chế độ & Kiểm soát chất lượng - Phân rã 30 ý kiến',
+                body: `
+      <div class="space-y-3 text-slate-700 dark:text-slate-300">
+        <div class="bg-teal-50 dark:bg-teal-950/40 p-3 rounded-lg border border-teal-100 dark:border-teal-900/40 text-xs">
+          <strong>Cấu trúc phân rã chất lượng:</strong>
+          <ul class="list-disc pl-4 mt-1 space-y-1">
+            <li><strong>Mục 1 (Chất lượng hồ sơ):</strong> 13 ý kiến kiểm soát tính thích hợp của bằng chứng kiểm toán.</li>
+            <li><strong>Mục 2 (Mẫu biểu):</strong> 06 ý kiến điều chỉnh kỹ thuật trình bày báo cáo.</li>
+            <li><strong>Mục 3 (Tính nhất quán):</strong> 01 ý kiến.</li>
+            <li><strong>Mục 4 (Khác):</strong> 03 ý kiến.</li>
+            <li><strong>Các chuyên đề lồng ghép (B.1, B.2, B.3):</strong> 07 ý kiến về Quỹ bảo vệ rừng và Quỹ tài chính ngoài ngân sách.</li>
+          </ul>
+        </div>
+        
+        <p class="font-semibold text-xs mt-3">Mẫu văn bản thực tế tiêu biểu:</p>
+        <div class="bg-slate-50 dark:bg-slate-950 p-2.5 rounded border border-slate-100 dark:border-slate-800 font-mono text-[10px] leading-relaxed text-teal-900 dark:text-teal-300">
+          "Đề nghị Đoàn kiểm toán làm rõ tính hợp lý, hợp lệ của các chứng từ thanh toán tạm ứng quá hạn tại UBND thành phố Ninh Bình. Yêu cầu định lượng cụ thể số tiền trước khi kiến nghị giảm quyết toán."
+        </div>
+        
+        <p class="font-semibold text-xs mt-3">Kết quả bóc tách của các AI:</p>
+        <ul class="list-disc pl-4 text-xs space-y-1 text-slate-600 dark:text-slate-400">
+          <li><strong>Claude:</strong> Ghi nhận chính xác 30 ý kiến, phân tích sâu các tranh biện về bằng chứng.</li>
+          <li><strong>ChatGPT & Copilot:</strong> Chỉ ghi nhận 13 ý kiến, bỏ sót toàn bộ 7 ý kiến về các chuyên đề lồng ghép.</li>
+          <li><strong>Gemini:</strong> Đếm lặp thành 62 ý kiến (thổi phồng gấp đôi dữ liệu do đếm lặp chú thích).</li>
+        </ul>
+      </div>
+    `
+            },
+            tonghop: {
+                title: 'Vụ Tổng hợp - Phân rã 23 ý kiến nghiệp vụ cốt lõi',
+                body: `
+      <div class="space-y-3 text-slate-700 dark:text-slate-300">
+        <div class="bg-amber-50 dark:bg-amber-950/40 p-3 rounded-lg border border-amber-100 dark:border-amber-900/40 text-xs">
+          <strong>Cấu trúc phân rã nghiệp vụ (Tổng cộng 23 ý kiến):</strong>
+          <ul class="list-disc pl-4 mt-1 space-y-1">
+            <li><strong>Mục 1.1:</strong> 01 ý kiến (Trang 32 về nợ thuế tài nguyên và tiền cấp quyền khai thác khoáng sản tại huyện Nho Quan).</li>
+            <li><strong>Mục 1.2:</strong> 12 ý kiến (liên quan đến các nội dung đánh giá trong Báo cáo kiểm toán).</li>
+            <li><strong>Mục 2.1:</strong> 01 ý kiến (Về kiến nghị xử lý tài chính).</li>
+            <li><strong>Mục 2.2:</strong> 06 ý kiến (về các kiến nghị khác).</li>
+            <li><strong>Mục 4:</strong> 03 ý kiến (về các vấn đề kỹ thuật và nội dung khác).</li>
+            <li><strong>Lưu ý:</strong> Mục 3 trong văn bản gốc là nội dung đối chiếu số liệu kỹ thuật, hiệu chỉnh bảng biểu cơ học, không tính là ý kiến mới độc lập.</li>
+          </ul>
+        </div>
+        
+        <p class="font-semibold text-xs mt-3">Mẫu văn bản thực tế tiêu biểu:</p>
+        <div class="bg-slate-50 dark:bg-slate-950 p-2.5 rounded border border-slate-100 dark:border-slate-800 font-mono text-[10px] leading-relaxed text-amber-950 dark:text-amber-300">
+          "Đề nghị Đoàn kiểm toán làm rõ chênh lệch số liệu nợ đọng xây dựng cơ bản 12.5 tỷ đồng giữa Biểu số 04 và Báo cáo thuyết minh tổng hợp tại trang 14 của Báo cáo kiểm toán ngân sách Ninh Bình."
+        </div>
+        
+        <p class="font-semibold text-xs mt-3">Kết quả bóc tách của các AI:</p>
+        <ul class="list-disc pl-4 text-xs space-y-1 text-slate-600 dark:text-slate-400">
+          <li><strong>Claude:</strong> Quét được 24 ý kiến (lệch +1 ý kiến do tính cả dòng hiệu chỉnh Mục 3).</li>
+          <li><strong>ChatGPT & Copilot:</strong> Ghi nhận 22 ý kiến (rất gần với 23, chỉ thiếu 1 ý kiến nhỏ).</li>
+          <li><strong>Gemini:</strong> Đếm lặp vọt lên 40 ý kiến do đếm cả các bảng biểu so sánh kèm theo.</li>
+        </ul>
+      </div>
+    `
+            }
+        };
+
+        function showDepartmentModal(deptKey) {
+            const modal = document.getElementById('deptModal');
+            const data = deptModalData[deptKey];
+
+            if (data) {
+                document.getElementById('modal_dept_title').innerText = data.title;
+                document.getElementById('modal_dept_body').innerHTML = data.body;
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('deptModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // workflow step simulation
+        const workflowStepsData = {
+            1: `
+<span class="text-slate-500">// BƯỚC 1: HỒ SƠ ĐẦU VÀO</span>
+<span class="text-yellow-500">>>> Đang tải tệp:</span> "DuThao_BCKT_NinhBinh_2022.docx" (Kích thước: 56 trang)
+<span class="text-slate-400">>>> Trích xuất văn bản thô (OCR & Text Extraction)... Hoàn thành.</span>
+<span class="text-slate-400">>>> Đã phát hiện 3 Vụ tham gia ý kiến đóng góp:</span>
+    - Vụ Pháp chế
+    - Vụ Chế độ & Kiểm soát chất lượng
+    - Vụ Tổng hợp
+<span class="text-emerald-500">>>> Trạng thái:</span> Đã sẵn sàng chuyển sang xử lý tự động (Pipeline Ready).
+  `,
+            2: `
+<span class="text-slate-500">// BƯỚC 2: XỬ LÝ TỰ ĐỘNG BẰNG AI</span>
+<span class="text-yellow-500">>>> Đang khởi chạy mô hình phân tích...</span>
+<span class="text-slate-400">>>> Gọi API Claude 3.5 Sonnet...</span>
+<span class="text-purple-400">>>> Đầu ra JSON cấu trúc:</span>
+{
+  "total_opinions": 94,
+  "accuracy_rate": "98.9%",
+  "categories": {
+    "phap_che": 40,
+    "che_do": 30,
+    "tong_hop": 24
+  },
+  "hallucinations_detected": 0
+}
+<span class="text-rose-500">>>> Cảnh báo Gemini:</span> Đã phát hiện 162 ý kiến (Đếm lặp +74.2% do phân rã chú thích).
+<span class="text-amber-500">>>> Cảnh báo ChatGPT/Copilot:</span> Nén cấu trúc, chỉ phát hiện 50 ý kiến (Bỏ sót -46.2%).
+<span class="text-emerald-500">>>> Trạng thái:</span> Trích xuất hoàn thành. Đã xuất dữ liệu sang giao diện Auditor Review.
+  `,
+            3: `
+<span class="text-slate-500">// BƯỚC 3: CON NGƯỜI ĐỐI SOÁT & PHÊ DUYỆT (Human-in-the-loop)</span>
+<span class="text-yellow-500">>>> Trình duyệt Auditor đang mở bảng đối chiếu Ninh Bình 2022...</span>
+<span class="text-slate-400">>>> Đối chiếu tự động số lượng:</span>
+    - Thực tế gốc: 93 ý kiến (Pháp chế: 40, Chế độ: 30, Tổng hợp: 23)
+    - AI trích xuất (Claude): 94 ý kiến (Lệch +1 ý kiến do tính cả dòng hiệu chỉnh Mục 3)
+<span class="text-blue-400">>>> Kiểm toán viên thực hiện thao tác đối soát:</span>
+    [OK] Đồng ý 93 ý kiến chính xác của Claude.
+    [-] Loại bỏ 1 ý kiến kỹ thuật dư thừa tại Mục 3 Vụ Tổng hợp.
+    [-] Loại bỏ 69 ý kiến đếm lặp của Gemini.
+<span class="text-emerald-500">>>> Trạng thái:</span> Hồ sơ khớp 100% dữ liệu thực tế Ninh Bình. Sẵn sàng phát hành.
+  `,
+            4: `
+<span class="text-slate-500">// BƯỚC 4: PHÁT HÀNH BÁO CÁO GIẢI TRÌNH TIẾP THU CHÍNH THỨC</span>
+<span class="text-yellow-500">>>> Đang tạo tài liệu báo cáo tiếp thu giải trình thẩm định...</span>
+<span class="text-slate-400">>>> Định dạng xuất:</span> PDF/A tiêu chuẩn lưu trữ số.
+<span class="text-slate-400">>>> Đang thực hiện chữ ký số (Digital Signature)...</span>
+    - Ký bởi: Tổ Nghiên cứu và ứng dụng giải pháp AI thương mại trong hoạt động của Kiểm toán nhà nước
+    - Ngày ký: 22/05/2026
+<span class="text-emerald-400">>>> Tệp tin đã phát hành thành công:</span> "BCGT_NinhBinh_2022_Final.pdf"
+<span class="text-emerald-500">>>> Trạng thái:</span> Quy trình kết thúc thành công. Đảm bảo an toàn pháp lý 100%.
+  `
+        };
+
+        function selectWorkflowStep(stepNum) {
+            // Highlight selected step button
+            for (let i = 1; i <= 4; i++) {
+                const btn = document.getElementById(`step-btn-${i}`);
+                if (i === stepNum) {
+                    btn.className = "flow-step cursor-pointer bg-slate-800 dark:bg-slate-900 p-5 rounded-2xl border border-teal-500 flex flex-col items-center text-center shadow-lg transition duration-200 shadow-teal-900/20";
+                } else {
+                    btn.className = "flow-step cursor-pointer bg-slate-800/40 dark:bg-slate-900/40 hover:bg-slate-700/80 p-5 rounded-2xl border border-slate-700 flex flex-col items-center text-center shadow-lg transition duration-200";
+                }
+            }
+
+            // Set content in simulated window
+            document.getElementById('workflow-simulated-content').innerHTML = workflowStepsData[stepNum];
+        }
+
+        // CHATBOT ASSISTANT LOGIC
+        function toggleChat() {
+            const windowEl = document.getElementById('chatboxWindow');
+            const icon = document.getElementById('chatBubbleIcon');
+            const isOpen = windowEl.classList.contains('scale-100');
+
+            if (isOpen) {
+                windowEl.classList.remove('scale-100', 'opacity-100');
+                windowEl.classList.add('scale-0', 'opacity-0', 'pointer-events-none');
+                icon.innerText = '💬';
+            } else {
+                windowEl.classList.add('scale-100', 'opacity-100');
+                windowEl.classList.remove('scale-0', 'opacity-0', 'pointer-events-none');
+                icon.innerText = '✕';
+            }
+        }
+
+        const chatResponses = {
+            1: "Google Gemini bị lỗi đếm lặp nghiêm trọng (ghi nhận 162 so với 93 ý kiến thực tế) do thuật toán tự động phân rã các dòng thảo luận, chú thích chân trang hoặc các câu thuyết minh của Đoàn kiểm toán thành các ý kiến độc lập. Gemini cũng tự tạo ra bảng ma trận Đúng/Sai cơ học, phá vỡ ngữ cảnh công vụ.",
+            2: "Claude 3.5 Sonnet tối ưu nhất nhờ cửa sổ ngữ cảnh cực lớn và khả năng hiểu ngôn ngữ hành chính công Việt Nam. Claude nhận diện đúng cấu trúc mục lục, trích xuất sát thực tế (94 ý kiến), bóc tách được bản chất các vụ việc phức tạp như Quỹ đất Ninh Bình (30 tỷ) hay Hợp đồng EC Khánh Phú.",
+            3: "Mặc dù ChatGPT và Copilot đều nén dữ liệu xuống 50 ý kiến do lỗi giới hạn ngữ cảnh, ChatGPT giữ điểm văn phong hành chính cao (9.0/10) và không bị lỗi hiển thị. Trong khi đó, Copilot (Free) gặp lỗi định dạng hiển thị dính số (41,82%, 7,14%, 2,4%) và chỉ phân tích ở mức đề mục khái quát hóa.",
+            4: "Vụ việc Quỹ phát triển đất Ninh Bình trị giá 30.000 triệu đồng (30 tỷ) là tranh biện phức tạp. Việc ứng vốn trùng nhiệm vụ chi ngân sách. Sau khi đơn vị bổ sung chứng từ đã hoàn trả đầy đủ trước 18/9/2023, Đoàn kiểm toán đã điều chỉnh kiến nghị từ 'xử lý trách nhiệm tập thể, cá nhân' xuống mức 'chấn chỉnh, rút kinh nghiệm'. Claude đã bóc tách chính xác sự việc này."
+        };
+
+        function askPresetQuestion(qId) {
+            const messagesContainer = document.getElementById('chatMessages');
+
+            // 1. Add User Message
+            let qText = '';
+            if (qId === 1) qText = "Google Gemini đếm lặp do đâu?";
+            else if (qId === 2) qText = "Vì sao Claude 3.5 tối ưu nhất?";
+            else if (qId === 3) qText = "ChatGPT và Copilot khác biệt như thế nào?";
+            else if (qId === 4) qText = "Sự việc Quỹ Phát triển đất Ninh Bình cụ thể ra sao?";
+
+            const userMsg = document.createElement('div');
+            userMsg.className = 'flex gap-2 justify-end';
+            userMsg.innerHTML = `
+    <div class="bg-blue-900 text-white px-3 py-2 rounded-2xl rounded-tr-none text-xs leading-relaxed max-w-[80%] font-semibold">
+      ${qText}
+    </div>
+    <div class="text-xl">👤</div>
+  `;
+            messagesContainer.appendChild(userMsg);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            // 2. Add AI typing indicator
+            const typingMsg = document.createElement('div');
+            typingMsg.className = 'flex gap-2';
+            typingMsg.id = 'typingIndicator';
+            typingMsg.innerHTML = `
+    <div class="text-xl">🤖</div>
+    <div class="bg-slate-200 dark:bg-slate-800 px-3 py-2 rounded-2xl rounded-tl-none text-xs text-slate-500 dark:text-slate-400">
+      Đang soạn câu trả lời...
+    </div>
+  `;
+            messagesContainer.appendChild(typingMsg);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            // 3. Simulate typing response
+            setTimeout(() => {
+                document.getElementById('typingIndicator').remove();
+
+                const botMsg = document.createElement('div');
+                botMsg.className = 'flex gap-2';
+                botMsg.innerHTML = `
+      <div class="text-xl">🤖</div>
+      <div class="bg-slate-200 dark:bg-slate-800 px-3 py-2 rounded-2xl rounded-tl-none text-xs leading-relaxed max-w-[80%]">
+        ${chatResponses[qId]}
+      </div>
+    `;
+                messagesContainer.appendChild(botMsg);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 1000);
+        }
+    </script>
+</body>
+
+</html>

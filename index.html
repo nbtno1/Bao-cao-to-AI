@@ -115,7 +115,7 @@
 
     <!-- SIMULATOR DRAWER / CONTROL PANEL (LEFT SIDEBAR) -->
     <aside id="simulatorDrawer"
-        class="fixed top-0 left-0 h-full w-80 md:w-96 z-40 bg-white/95 dark:bg-slate-900/95 shadow-2xl border-r border-slate-200 dark:border-slate-800 transition-transform duration-300 transform -translate-x-full overflow-y-auto custom-scrollbar flex flex-col">
+        class="fixed top-0 left-0 h-full w-80 md:w-96 z-40 bg-white/95 dark:bg-slate-900/95 shadow-2xl border-r border-slate-200 dark:border-slate-800 transition-transform duration-300 transform -translate-x-full overflow-y-auto custom-scrollbar flex flex-col invisible">
         <div
             class="p-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-blue-900 text-white">
             <div class="flex items-center gap-2">
@@ -964,10 +964,10 @@
     </main>
 
     <!-- CHATBOT ASSISTANT (FLOATING BUBBLE & BOX) -->
-    <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end pointer-events-none">
         <!-- Chatbox window -->
         <div id="chatboxWindow"
-            class="w-80 md:w-96 h-[450px] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden mb-4 transition-all duration-300 transform scale-0 origin-bottom-right opacity-0 pointer-events-none">
+            class="w-80 md:w-96 h-[450px] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden mb-4 transition-all duration-300 transform scale-0 origin-bottom-right opacity-0 pointer-events-none pointer-events-auto">
 
             <!-- Chat Header -->
             <div class="bg-blue-900 text-white p-4 flex justify-between items-center shadow-sm">
@@ -1023,7 +1023,7 @@
 
         <!-- Chat bubble button -->
         <button id="chatBubble" onclick="toggleChat()"
-            class="w-14 h-14 bg-blue-900 hover:bg-blue-800 text-white rounded-full flex items-center justify-center shadow-2xl transition transform hover:scale-105 active:scale-95 border-2 border-white dark:border-slate-800">
+            class="w-14 h-14 bg-blue-900 hover:bg-blue-800 text-white rounded-full flex items-center justify-center shadow-2xl transition transform hover:scale-105 active:scale-95 border-2 border-white dark:border-slate-800 pointer-events-auto">
             <span class="text-2xl" id="chatBubbleIcon">💬</span>
         </button>
     </div>
@@ -1130,11 +1130,19 @@
             const isHidden = drawer.classList.contains('-translate-x-full');
 
             if (isHidden) {
+                drawer.classList.remove('invisible');
+                // Force layout reflow to ensure transitions run smoothly
+                void drawer.offsetWidth;
                 drawer.classList.remove('-translate-x-full');
                 backdrop.classList.remove('hidden');
             } else {
                 drawer.classList.add('-translate-x-full');
                 backdrop.classList.add('hidden');
+                setTimeout(() => {
+                    if (drawer.classList.contains('-translate-x-full')) {
+                        drawer.classList.add('invisible');
+                    }
+                }, 300);
             }
         }
 

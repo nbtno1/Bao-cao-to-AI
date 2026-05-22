@@ -12,7 +12,7 @@
         rel="stylesheet">
     <script>
         // Global error logger for mobile Safari debugging
-        window.onerror = function(msg, url, line, col, error) {
+        window.onerror = function (msg, url, line, col, error) {
             alert("Lỗi JavaScript:\n" + msg + "\ntại dòng " + line + ":" + col + "\ntệp: " + url);
             return false;
         };
@@ -339,10 +339,6 @@
 
                 <!-- Interactive Buttons -->
                 <div class="flex flex-wrap md:flex-col lg:flex-row gap-3 justify-center">
-                    <button onclick="toggleSimulator()"
-                        class="hidden flex items-center gap-2 bg-teal-500 hover:bg-teal-400 text-white font-bold py-2.5 px-5 rounded-xl shadow-lg shadow-teal-500/30 transition-all transform active:scale-95 text-sm uppercase">
-                        <span class="text-lg">⚙️</span> Mở Bộ Mô Phỏng
-                    </button>
                     <button onclick="toggleDarkMode()"
                         class="flex items-center justify-center w-11 h-11 bg-white/10 border border-white/20 hover:bg-white/20 text-white rounded-xl transition-all shadow-lg"
                         title="Đổi chế độ Sáng/Tối">
@@ -1113,7 +1109,7 @@
             setItem(key, val) {
                 try {
                     localStorage.setItem(key, val);
-                } catch (e) {}
+                } catch (e) { }
             }
         };
 

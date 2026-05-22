@@ -11,6 +11,12 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800;900&display=swap"
         rel="stylesheet">
     <script>
+        // Global error logger for mobile Safari debugging
+        window.onerror = function(msg, url, line, col, error) {
+            alert("Lỗi JavaScript:\n" + msg + "\ntại dòng " + line + ":" + col + "\ntệp: " + url);
+            return false;
+        };
+
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -1095,9 +1101,27 @@
             return lines;
         }
 
+        // Safe localStorage wrapper to prevent crashes on Safari Private Mode
+        const safeStorage = {
+            getItem(key) {
+                try {
+                    return localStorage.getItem(key);
+                } catch (e) {
+                    return null;
+                }
+            },
+            setItem(key, val) {
+                try {
+                    localStorage.setItem(key, val);
+                } catch (e) {}
+            }
+        };
+
         // Set up baseline font settings for Chart.js
-        Chart.defaults.font.family = "'Inter', sans-serif";
-        Chart.defaults.color = '#64748b';
+        if (typeof Chart !== 'undefined') {
+            Chart.defaults.font.family = "'Inter', sans-serif";
+            Chart.defaults.color = '#64748b';
+        }
 
         // Toggle functions
         function toggleSimulator() {
@@ -1122,45 +1146,51 @@
             if (html.classList.contains('dark')) {
                 html.classList.remove('dark');
                 html.classList.add('light');
-                localStorage.setItem('theme', 'light');
-                sunIcon.classList.add('hidden');
-                moonIcon.classList.remove('hidden');
+                safeStorage.setItem('theme', 'light');
+                if (sunIcon) sunIcon.classList.add('hidden');
+                if (moonIcon) moonIcon.classList.remove('hidden');
             } else {
                 html.classList.remove('light');
                 html.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
-                moonIcon.classList.add('hidden');
-                sunIcon.classList.remove('hidden');
+                safeStorage.setItem('theme', 'dark');
+                if (moonIcon) moonIcon.classList.add('hidden');
+                if (sunIcon) sunIcon.classList.remove('hidden');
             }
             // Refresh chart text colors if dark mode changes
             const textColor = html.classList.contains('dark') ? '#94a3b8' : '#64748b';
-            Chart.defaults.color = textColor;
-            if (doughnutChartInst) doughnutChartInst.update();
-            if (barChartInst) barChartInst.update();
-            if (radarChartInst) {
-                radarChartInst.options.scales.r.pointLabels.color = html.classList.contains('dark') ? '#e2e8f0' : '#1e293b';
-                radarChartInst.update();
+            if (typeof Chart !== 'undefined') {
+                Chart.defaults.color = textColor;
+                if (doughnutChartInst) doughnutChartInst.update();
+                if (barChartInst) barChartInst.update();
+                if (radarChartInst) {
+                    radarChartInst.options.scales.r.pointLabels.color = html.classList.contains('dark') ? '#e2e8f0' : '#1e293b';
+                    radarChartInst.update();
+                }
             }
         }
 
         // Apply theme on load
         window.addEventListener('DOMContentLoaded', () => {
-            const savedTheme = localStorage.getItem('theme');
+            const savedTheme = safeStorage.getItem('theme');
             const sunIcon = document.getElementById('sunIcon');
             const moonIcon = document.getElementById('moonIcon');
 
             if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                 document.documentElement.classList.add('dark');
                 document.documentElement.classList.remove('light');
-                moonIcon.classList.add('hidden');
-                sunIcon.classList.remove('hidden');
-                Chart.defaults.color = '#94a3b8';
+                if (moonIcon) moonIcon.classList.add('hidden');
+                if (sunIcon) sunIcon.classList.remove('hidden');
+                if (typeof Chart !== 'undefined') {
+                    Chart.defaults.color = '#94a3b8';
+                }
             } else {
                 document.documentElement.classList.add('light');
                 document.documentElement.classList.remove('dark');
-                sunIcon.classList.add('hidden');
-                moonIcon.classList.remove('hidden');
-                Chart.defaults.color = '#64748b';
+                if (sunIcon) sunIcon.classList.add('hidden');
+                if (moonIcon) moonIcon.classList.remove('hidden');
+                if (typeof Chart !== 'undefined') {
+                    Chart.defaults.color = '#64748b';
+                }
             }
 
             initCharts();
@@ -1400,6 +1430,10 @@
 
         // Initialise Chart.js graphs
         function initCharts() {
+            if (typeof Chart === 'undefined') {
+                console.warn("Chart.js not loaded.");
+                return;
+            }
             const isDark = document.documentElement.classList.contains('dark');
             const textColor = isDark ? '#94a3b8' : '#64748b';
             const gridColor = isDark ? '#334155' : '#e2e8f0';
